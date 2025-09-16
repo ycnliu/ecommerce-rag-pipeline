@@ -97,11 +97,13 @@ else:
 def load_product_database():
     """Load product database from CSV or use mock data."""
 
-    # Try to load real dataset
+    # Try to load real dataset (prioritize full dataset)
     possible_paths = [
-        "data/test_sample_1000.csv",
-        "test_sample_1000.csv",
-        "products.csv"
+        "data/amazon_com_ecommerce.csv",      # Full 10K dataset
+        "amazon_com_ecommerce.csv",           # If uploaded to Space root
+        "data/test_sample_1000.csv",          # Test dataset
+        "test_sample_1000.csv",               # If uploaded to Space root
+        "products.csv"                        # Generic name
     ]
 
     for path in possible_paths:
