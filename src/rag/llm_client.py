@@ -118,7 +118,7 @@ class HuggingFaceLLMClient(BaseLLMClient):
 
 
 class OpenAILLMClient(BaseLLMClient):
-    """OpenAI API client (placeholder for future implementation)."""
+    """OpenAI API client with full implementation."""
 
     def __init__(self, api_key: str, model_name: str = "gpt-3.5-turbo"):
         """
@@ -130,6 +130,7 @@ class OpenAILLMClient(BaseLLMClient):
         """
         self.api_key = api_key
         self.model_name = model_name
+        self.base_url = "https://api.openai.com/v1/chat/completions"
         logger.info(f"Initialized OpenAI client for model: {model_name}")
 
     def generate_response(
@@ -140,14 +141,65 @@ class OpenAILLMClient(BaseLLMClient):
         stop_sequences: Optional[List[str]] = None
     ) -> str:
         """Generate response using OpenAI API."""
-        # Placeholder implementation
-        raise NotImplementedError("OpenAI client not yet implemented")
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "model": self.model_name,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "stream": False
+            }
+
+            if stop_sequences:
+                payload["stop"] = stop_sequences
+
+            response = requests.post(
+                self.base_url,
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                return result["choices"][0]["message"]["content"].strip()
+            else:
+                error_msg = f"OpenAI API error: {response.status_code}"
+                if response.status_code == 401:
+                    error_msg += " - Invalid API key"
+                elif response.status_code == 429:
+                    error_msg += " - Rate limit exceeded"
+                elif response.status_code == 402:
+                    error_msg += " - Insufficient credits"
+                else:
+                    error_msg += f" - {response.text[:100]}"
+
+                logger.error(error_msg)
+                raise LLMError(error_msg)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"OpenAI API request failed: {e}")
+            raise LLMError(f"OpenAI API request failed: {e}")
+        except Exception as e:
+            logger.error(f"OpenAI client error: {e}")
+            raise LLMError(f"OpenAI client error: {e}")
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information."""
         return {
             "model_name": self.model_name,
-            "provider": "openai"
+            "provider": "openai",
+            "base_url": self.base_url
         }
 
 

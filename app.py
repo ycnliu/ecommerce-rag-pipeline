@@ -67,14 +67,25 @@ class FallbackLLMClient:
 # Initialize components
 if LLM_AVAILABLE:
     try:
-        llm_client = create_llm_client(
-            provider="free",
-            model_name="fallback",
-            api_token=os.getenv("HF_TOKEN", "demo")
-        )
+        # Try OpenAI first if available
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if openai_key:
+            llm_client = create_llm_client(
+                provider="openai",
+                model_name="gpt-3.5-turbo",
+                api_token=openai_key
+            )
+            logger.info("Using OpenAI GPT-3.5-turbo for enhanced responses")
+        else:
+            # Fallback to free options
+            llm_client = create_llm_client(
+                provider="free",
+                model_name="fallback",
+                api_token=os.getenv("HF_TOKEN", "demo")
+            )
         prompt_builder = PromptBuilder()
     except Exception as e:
-        logger.warning(f"Failed to initialize components: {e}")
+        logger.warning(f"Failed to initialize LLM components: {e}")
         llm_client = FallbackLLMClient()
         prompt_builder = None
 else:
@@ -220,11 +231,23 @@ def process_query(query: str) -> Tuple[str, str]:
         ai_response = llm_client.generate_response(
             prompt=prompt,
             max_tokens=300,
-            temperature=0.7
+            temperature=0.3  # Lower temperature for more consistent responses
         )
         generation_time = time.time() - start_time
 
-        ai_response = f"🤖 **AI Assistant** (responded in {generation_time:.2f}s):\n\n{ai_response}"
+        # Add model info and cost estimate
+        model_info = llm_client.get_model_info()
+        model_name = model_info.get("model_name", "unknown")
+
+        if "openai" in model_info.get("provider", ""):
+            # Estimate cost for OpenAI
+            estimated_tokens = len(prompt.split()) + len(ai_response.split())
+            estimated_cost = estimated_tokens * 0.0015 / 1000  # GPT-3.5-turbo pricing
+            cost_info = f" • Cost: ~${estimated_cost:.4f}"
+        else:
+            cost_info = " • Free"
+
+        ai_response = f"🤖 **AI Assistant** ({model_name} • {generation_time:.2f}s{cost_info}):\n\n{ai_response}"
 
     except Exception as e:
         logger.error(f"LLM generation failed: {e}")
