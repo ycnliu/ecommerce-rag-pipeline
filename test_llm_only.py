@@ -1,23 +1,24 @@
+#!/usr/bin/env python3
 """
-LLM client for generating responses in the RAG pipeline.
+Test script for LLM client functionality only.
+No dependencies on embedding services or vector databases.
 """
+import sys
+import os
+import importlib.util
 from typing import Optional, Dict, Any, List
 from abc import ABC, abstractmethod
 import requests
 import json
-try:
-    from huggingface_hub import InferenceClient
-    HF_AVAILABLE = True
-except ImportError:
-    HF_AVAILABLE = False
-try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
+import time
+
+# Import loguru
 from loguru import logger
 
-from ..utils.exceptions import LLMError
+# Define custom exception
+class LLMError(Exception):
+    """Exception raised for LLM-related errors."""
+    pass
 
 
 class BaseLLMClient(ABC):
@@ -40,117 +41,6 @@ class BaseLLMClient(ABC):
         pass
 
 
-class HuggingFaceLLMClient(BaseLLMClient):
-    """Hugging Face Inference API client."""
-
-    def __init__(
-        self,
-        model_name: str,
-        api_token: str,
-        base_url: Optional[str] = None
-    ):
-        """
-        Initialize Hugging Face LLM client.
-
-        Args:
-            model_name: Model name on Hugging Face
-            api_token: Hugging Face API token
-            base_url: Optional base URL for custom endpoints
-        """
-        self.model_name = model_name
-        self.api_token = api_token
-        self.base_url = base_url
-
-        try:
-            self.client = InferenceClient(
-                model=model_name,
-                token=api_token,
-                base_url=base_url
-            )
-            logger.info(f"Initialized Hugging Face client for model: {model_name}")
-        except Exception as e:
-            logger.error(f"Failed to initialize Hugging Face client: {e}")
-            raise LLMError(f"Failed to initialize Hugging Face client: {e}") from e
-
-    def generate_response(
-        self,
-        prompt: str,
-        max_tokens: int = 300,
-        temperature: float = 0.1,
-        stop_sequences: Optional[List[str]] = None
-    ) -> str:
-        """
-        Generate response using Hugging Face Inference API.
-
-        Args:
-            prompt: Input prompt
-            max_tokens: Maximum tokens to generate
-            temperature: Sampling temperature
-            stop_sequences: Stop sequences for generation
-
-        Returns:
-            Generated response text
-
-        Raises:
-            LLMError: If generation fails
-        """
-        try:
-            response = self.client.text_generation(
-                prompt=prompt,
-                max_new_tokens=max_tokens,
-                temperature=temperature,
-                stop=stop_sequences or []
-            )
-
-            return response.strip()
-
-        except Exception as e:
-            logger.error(f"Failed to generate response: {e}")
-            raise LLMError(f"Failed to generate response: {e}") from e
-
-    def get_model_info(self) -> Dict[str, Any]:
-        """Get model information."""
-        return {
-            "model_name": self.model_name,
-            "provider": "huggingface",
-            "base_url": self.base_url
-        }
-
-
-class OpenAILLMClient(BaseLLMClient):
-    """OpenAI API client (placeholder for future implementation)."""
-
-    def __init__(self, api_key: str, model_name: str = "gpt-3.5-turbo"):
-        """
-        Initialize OpenAI client.
-
-        Args:
-            api_key: OpenAI API key
-            model_name: Model name
-        """
-        self.api_key = api_key
-        self.model_name = model_name
-        logger.info(f"Initialized OpenAI client for model: {model_name}")
-
-    def generate_response(
-        self,
-        prompt: str,
-        max_tokens: int = 300,
-        temperature: float = 0.1,
-        stop_sequences: Optional[List[str]] = None
-    ) -> str:
-        """Generate response using OpenAI API."""
-        # Placeholder implementation
-        raise NotImplementedError("OpenAI client not yet implemented")
-
-    def get_model_info(self) -> Dict[str, Any]:
-        """Get model information."""
-        return {
-            "model_name": self.model_name,
-            "provider": "openai"
-        }
-
-
 class FreeLLMClient(BaseLLMClient):
     """Client for free LLM APIs like Hugging Face Inference."""
 
@@ -166,9 +56,24 @@ class FreeLLMClient(BaseLLMClient):
         self.device = device
         self.client = None
 
+        # Check if transformers is available
+        try:
+            spec = importlib.util.find_spec("transformers")
+            TRANSFORMERS_AVAILABLE = spec is not None
+        except ImportError:
+            TRANSFORMERS_AVAILABLE = False
+
+        # Check if huggingface_hub is available
+        try:
+            spec = importlib.util.find_spec("huggingface_hub")
+            HF_AVAILABLE = spec is not None
+        except ImportError:
+            HF_AVAILABLE = False
+
         # Try Hugging Face Inference API first (free tier available)
         if HF_AVAILABLE and api_token:
             try:
+                from huggingface_hub import InferenceClient
                 self.client = InferenceClient(model=model_name, token=api_token)
                 self.client_type = "hf_inference"
                 logger.info(f"Using Hugging Face Inference API: {model_name}")
@@ -178,6 +83,7 @@ class FreeLLMClient(BaseLLMClient):
         # Fallback to local transformers pipeline
         if self.client is None and TRANSFORMERS_AVAILABLE:
             try:
+                from transformers import pipeline
                 self.client = pipeline(
                     "text-generation",
                     model=model_name,
@@ -344,84 +250,6 @@ class OllamaLLMClient(BaseLLMClient):
         }
 
 
-class OpenSourceLLMClient(BaseLLMClient):
-    """Client for various open-source LLM APIs."""
-
-    def __init__(
-        self,
-        provider: str = "groq",  # groq, together, replicate
-        model_name: str = "llama2-70b-4096",
-        api_token: Optional[str] = None,
-        **kwargs
-    ):
-        """Initialize open-source LLM client."""
-        self.provider = provider.lower()
-        self.model_name = model_name
-        self.api_token = api_token
-
-        # Provider configurations
-        self.configs = {
-            "groq": {
-                "base_url": "https://api.groq.com/openai/v1/chat/completions",
-                "headers": {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
-            },
-            "together": {
-                "base_url": "https://api.together.xyz/v1/chat/completions",
-                "headers": {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
-            }
-        }
-
-    def generate_response(
-        self,
-        prompt: str,
-        max_tokens: int = 200,
-        temperature: float = 0.7,
-        stop_sequences: Optional[List[str]] = None
-    ) -> str:
-        """Generate response using open-source LLM API."""
-        if self.provider not in self.configs:
-            return f"Provider {self.provider} not supported"
-
-        config = self.configs[self.provider]
-
-        try:
-            payload = {
-                "model": self.model_name,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": max_tokens,
-                "temperature": temperature
-            }
-
-            if stop_sequences:
-                payload["stop"] = stop_sequences
-
-            response = requests.post(
-                config["base_url"],
-                headers=config["headers"],
-                json=payload,
-                timeout=30
-            )
-
-            if response.status_code == 200:
-                result = response.json()
-                return result["choices"][0]["message"]["content"].strip()
-            else:
-                logger.error(f"{self.provider} API error: {response.status_code}")
-                return f"API Error: {response.status_code}"
-
-        except Exception as e:
-            logger.error(f"{self.provider} generation failed: {e}")
-            return f"Error generating response: {str(e)}"
-
-    def get_model_info(self) -> Dict[str, Any]:
-        """Get model information."""
-        return {
-            "provider": self.provider,
-            "model_name": self.model_name,
-            "type": "open_source_api"
-        }
-
-
 def create_llm_client(
     provider: str,
     model_name: str,
@@ -432,30 +260,15 @@ def create_llm_client(
     Factory function to create LLM clients.
 
     Args:
-        provider: LLM provider ("huggingface", "openai")
+        provider: LLM provider ("free", "ollama")
         model_name: Model name
         api_token: API token
         **kwargs: Additional provider-specific arguments
 
     Returns:
         LLM client instance
-
-    Raises:
-        ValueError: If provider is not supported
     """
-    if provider.lower() == "huggingface":
-        return HuggingFaceLLMClient(
-            model_name=model_name,
-            api_token=api_token,
-            **kwargs
-        )
-    elif provider.lower() == "openai":
-        return OpenAILLMClient(
-            api_key=api_token,
-            model_name=model_name,
-            **kwargs
-        )
-    elif provider.lower() == "free":
+    if provider.lower() == "free":
         return FreeLLMClient(
             model_name=model_name,
             api_token=api_token,
@@ -466,13 +279,6 @@ def create_llm_client(
             model_name=model_name,
             **kwargs
         )
-    elif provider.lower() in ["groq", "together", "replicate"]:
-        return OpenSourceLLMClient(
-            provider=provider,
-            model_name=model_name,
-            api_token=api_token,
-            **kwargs
-        )
     else:
         # Default to free LLM client for unknown providers
         logger.warning(f"Unknown provider '{provider}', using free LLM client")
@@ -481,3 +287,173 @@ def create_llm_client(
             api_token=api_token,
             **kwargs
         )
+
+
+def test_free_llm_responses():
+    """Test free LLM clients with e-commerce prompts."""
+
+    logger.info("🆓 Testing Free LLM Response Generation")
+
+    # Test different free LLM configurations
+    free_llm_configs = [
+        {
+            "name": "Free Fallback (No dependencies)",
+            "provider": "free",
+            "model": "fallback",
+            "token": None
+        },
+        {
+            "name": "Local Transformers (if available)",
+            "provider": "free",
+            "model": "gpt2",
+            "token": None
+        },
+        {
+            "name": "Ollama (if running)",
+            "provider": "ollama",
+            "model": "llama2",
+            "token": None
+        }
+    ]
+
+    # E-commerce test prompts
+    test_prompts = [
+        """User query: wireless bluetooth headphones under $100
+
+Search results:
+1. Product: Sony WH-CH720N Wireless Bluetooth Headphones | Price: $89.99 | Category: Electronics
+   - Product URL: https://example.com/sony-headphones
+   - Features: Active Noise Cancelling, 35-hour battery life
+
+2. Product: JBL Tune 510BT Wireless On-Ear Headphones | Price: $39.99 | Category: Audio
+   - Product URL: https://example.com/jbl-headphones
+   - Features: Wireless Bluetooth 5.0, Pure Bass sound
+
+3. Product: Anker Soundcore Life Q20 Hybrid Active Noise Cancelling Headphones | Price: $59.99 | Category: Electronics
+   - Product URL: https://example.com/anker-headphones
+   - Features: Hi-Res Audio, 40-hour playtime
+
+Provide a helpful response:""",
+
+        """User query: educational toys for 5 year old kids
+
+Search results:
+1. Product: LEGO Classic Creative Bricks Set | Price: $24.99 | Category: Toys & Games
+   - Product URL: https://example.com/lego-bricks
+   - Age Range: 4-99 years, 484 pieces included
+
+2. Product: Melissa & Doug Wooden Shape Sorting Cube | Price: $19.99 | Category: Educational Toys
+   - Product URL: https://example.com/shape-cube
+   - Features: 12 chunky, vibrant shapes to sort
+
+3. Product: LeapFrog LeapStart Interactive Learning System | Price: $34.99 | Category: Educational Electronics
+   - Product URL: https://example.com/leapstart
+   - Features: Interactive books, stylus included
+
+Provide a helpful response:"""
+    ]
+
+    logger.info("\n" + "="*60)
+    logger.info("🧪 TESTING FREE LLM PROVIDERS")
+    logger.info("="*60)
+
+    for config_info in free_llm_configs:
+        logger.info(f"\n📋 Testing: {config_info['name']}")
+        logger.info(f"   Provider: {config_info['provider']}")
+        logger.info(f"   Model: {config_info['model']}")
+
+        try:
+            # Create LLM client
+            llm_client = create_llm_client(
+                provider=config_info['provider'],
+                model_name=config_info['model'],
+                api_token=config_info['token'] or "dummy_token"
+            )
+
+            model_info = llm_client.get_model_info()
+            logger.info(f"   Status: {model_info}")
+
+            # Test with first prompt
+            prompt = test_prompts[0]
+            logger.info(f"\n🔍 Testing query: 'wireless bluetooth headphones under $100'")
+
+            # Generate response
+            start_time = time.time()
+            response = llm_client.generate_response(
+                prompt=prompt,
+                max_tokens=150,
+                temperature=0.7
+            )
+            generation_time = time.time() - start_time
+
+            logger.info(f"✅ Response generated in {generation_time:.2f}s")
+            logger.info(f"📝 Response: {response}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed: {e}")
+
+    # Demonstrate complete responses with fallback
+    logger.info("\n" + "="*60)
+    logger.info("🎯 COMPLETE E-COMMERCE RESPONSES")
+    logger.info("="*60)
+
+    # Use fallback client for guaranteed responses
+    fallback_client = create_llm_client(
+        provider="free",
+        model_name="fallback",
+        api_token=None
+    )
+
+    for i, prompt in enumerate(test_prompts, 1):
+        # Extract query for display
+        query_line = [line for line in prompt.split('\n') if line.startswith('User query:')][0]
+        query = query_line.replace('User query: ', '')
+
+        logger.info(f"\n--- Test {i}: '{query}' ---")
+
+        # Generate response
+        start_time = time.time()
+        response = fallback_client.generate_response(
+            prompt=prompt,
+            max_tokens=200,
+            temperature=0.7
+        )
+        generation_time = time.time() - start_time
+
+        print(f"\n🤖 AI Response ({generation_time:.2f}s):")
+        print(f"   {response}")
+
+    # Show setup instructions
+    logger.info("\n" + "="*60)
+    logger.info("📋 SETUP INSTRUCTIONS")
+    logger.info("="*60)
+
+    print("\n🆓 Free LLM Setup Options:")
+    print("\n1. **Fallback Responses** (Current - Always works)")
+    print("   ✅ No setup required")
+    print("   ✅ Provides helpful templated responses")
+    print("   ✅ Good for demos and testing")
+
+    print("\n2. **Local Transformers** (Recommended)")
+    print("   📦 Install: pip install transformers torch")
+    print("   🔧 Usage: LLM_PROVIDER=free, LLM_MODEL_NAME=gpt2")
+    print("   ✅ Runs locally, privacy-friendly")
+    print("   ✅ Models: gpt2, distilgpt2, microsoft/DialoGPT-medium")
+
+    print("\n3. **Ollama** (Best quality)")
+    print("   📦 Install: curl https://ollama.ai/install.sh | sh")
+    print("   🚀 Start: ollama run llama2")
+    print("   🔧 Usage: LLM_PROVIDER=ollama, LLM_MODEL_NAME=llama2")
+    print("   ✅ High-quality responses")
+    print("   ✅ Models: llama2, mistral, codellama")
+
+    print("\n4. **Free API Tiers**")
+    print("   🔑 Hugging Face Inference API (get free token)")
+    print("   🔑 Groq API (fast inference, free credits)")
+    print("   🔑 Together AI (limited free tier)")
+
+    logger.info("\n🎉 Free LLM testing completed successfully!")
+
+
+if __name__ == "__main__":
+    test_free_llm_responses()

@@ -15,7 +15,12 @@ import requests
 from transformers import CLIPProcessor, CLIPModel, CLIPConfig
 from transformers import get_linear_schedule_with_warmup
 from loguru import logger
-import wandb
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+    wandb = None
 from tqdm import tqdm
 
 from ..utils.exceptions import ModelLoadError, EmbeddingError
@@ -500,12 +505,14 @@ class CLIPFineTuner:
             raise ValueError("Model and optimizer not setup. Call load_model() and setup_training() first.")
 
         # Initialize wandb if requested
-        if use_wandb:
+        if use_wandb and WANDB_AVAILABLE:
             wandb.init(project=project_name, config={
                 'model_name': self.model_name,
                 'num_epochs': num_epochs,
                 'learning_rate': self.optimizer.param_groups[0]['lr']
             })
+        elif use_wandb:
+            logger.warning("Weights & Biases not available, continuing without logging")
 
         # Setup loss function
         loss_fn = DomainAdaptationLoss()
@@ -540,7 +547,7 @@ class CLIPFineTuner:
                 f"val_loss={val_metrics['val_loss']:.4f}"
             )
 
-            if use_wandb:
+            if use_wandb and WANDB_AVAILABLE:
                 wandb.log({
                     'epoch': epoch + 1,
                     **train_metrics,
@@ -556,7 +563,7 @@ class CLIPFineTuner:
         # Save final model
         self.save_model("final_model")
 
-        if use_wandb:
+        if use_wandb and WANDB_AVAILABLE:
             wandb.finish()
 
         logger.info("Fine-tuning completed successfully")
