@@ -1,0 +1,224 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get version
+      id: get_version
+      run: |
+        if [ "${{ github.event_name }}" = "push" ]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+        else
+          VERSION=${{ github.event.inputs.version }}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.version }}
+        release_name: Release ${{ steps.get_version.outputs.version }}
+        draft: false
+        prerelease: false
+        body: |
+          ## What's New in ${{ steps.get_version.outputs.version }}
+
+          ### Features
+          - Enhanced multimodal embedding fusion
+          - CLIP fine-tuning for domain adaptation
+          - Advanced field extraction patterns
+          - Improved RAG pipeline performance
+
+          ### Improvements
+          - Better error handling and logging
+          - Enhanced API documentation
+          - Optimized vector search performance
+
+          ### Bug Fixes
+          - Fixed embedding dimension mismatches
+          - Resolved memory leaks in batch processing
+
+          ## Installation
+
+          ```bash
+          pip install ecommerce-rag-pipeline==${{ steps.get_version.outputs.version }}
+          ```
+
+          ## Docker
+
+          ```bash
+          docker pull ecommerce-rag-pipeline:${{ steps.get_version.outputs.version }}
+          ```
+
+  build-and-publish:
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine wheel
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Check package
+      run: |
+        twine check dist/*
+
+    - name: Publish to Test PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      run: |
+        twine upload --repository testpypi dist/*
+
+    - name: Test installation from Test PyPI
+      run: |
+        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ ecommerce-rag-pipeline==${{ needs.create-release.outputs.release_version }}
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        twine upload dist/*
+
+    - name: Upload release assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: dist/
+        asset_name: python-packages
+        asset_content_type: application/zip
+
+  build-docker-release:
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ secrets.DOCKER_USERNAME }}/ecommerce-rag-pipeline
+        tags: |
+          type=ref,event=tag
+          type=raw,value=latest
+          type=raw,value=${{ needs.create-release.outputs.release_version }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  update-documentation:
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install sphinx sphinx-rtd-theme
+
+    - name: Build documentation
+      run: |
+        # Generate API documentation
+        sphinx-apidoc -o docs/source src/
+        sphinx-build -b html docs/source docs/build
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/build
+
+  notify-release:
+    runs-on: ubuntu-latest
+    needs: [build-and-publish, build-docker-release, update-documentation]
+    if: always()
+
+    steps:
+    - name: Notify Slack on success
+      if: needs.build-and-publish.result == 'success' && needs.build-docker-release.result == 'success'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: |
+          🎉 Release ${{ needs.create-release.outputs.release_version }} published successfully!
+
+          📦 PyPI: https://pypi.org/project/ecommerce-rag-pipeline/
+          🐳 Docker: docker pull ecommerce-rag-pipeline:${{ needs.create-release.outputs.release_version }}
+          📚 Docs: https://your-username.github.io/ecommerce-rag-pipeline/
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Notify Slack on failure
+      if: needs.build-and-publish.result == 'failure' || needs.build-docker-release.result == 'failure'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: "❌ Release ${{ needs.create-release.outputs.release_version }} failed"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

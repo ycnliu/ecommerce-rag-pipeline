@@ -1,0 +1,222 @@
+name: Model Sync to Hugging Face
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_path:
+        description: 'Local model path to sync'
+        required: true
+        default: 'models/fine_tuned'
+      repo_name:
+        description: 'Hugging Face repository name'
+        required: true
+        default: 'ecommerce-rag-clip'
+      private:
+        description: 'Make repository private'
+        required: false
+        default: false
+        type: boolean
+      model_type:
+        description: 'Type of model'
+        required: true
+        default: 'clip'
+        type: choice
+        options:
+        - clip
+        - fusion
+        - full_pipeline
+
+  schedule:
+    # Auto-sync daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install huggingface_hub
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Check if model exists
+      run: |
+        MODEL_PATH="${{ github.event.inputs.model_path || 'models/fine_tuned' }}"
+        if [ ! -d "$MODEL_PATH" ]; then
+          echo "Model path $MODEL_PATH does not exist"
+          exit 1
+        fi
+        echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
+
+    - name: Create model card
+      run: |
+        python scripts/create_model_card.py \
+          --model-path ${{ env.MODEL_PATH }} \
+          --model-type ${{ github.event.inputs.model_type || 'clip' }} \
+          --output-file ${{ env.MODEL_PATH }}/README.md
+
+    - name: Upload to Hugging Face Hub
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        python -c "
+        from huggingface_hub import HfApi, create_repo
+        import os
+
+        api = HfApi()
+        repo_name = '${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}'
+
+        # Create repository if it doesn't exist
+        try:
+            create_repo(
+                repo_id=repo_name,
+                private=${{ github.event.inputs.private || 'False' }},
+                exist_ok=True
+            )
+            print(f'Repository {repo_name} ready')
+        except Exception as e:
+            print(f'Repository creation/check failed: {e}')
+
+        # Upload model files
+        api.upload_folder(
+            folder_path='${{ env.MODEL_PATH }}',
+            repo_id=repo_name,
+            commit_message='Sync model from GitHub Actions'
+        )
+        print(f'Model uploaded to https://huggingface.co/{repo_name}')
+        "
+
+    - name: Update model registry
+      run: |
+        echo "Updating model registry..."
+        python -c "
+        import json
+        import os
+        from datetime import datetime
+
+        registry_file = 'model_registry.json'
+
+        # Load existing registry or create new
+        if os.path.exists(registry_file):
+            with open(registry_file, 'r') as f:
+                registry = json.load(f)
+        else:
+            registry = {'models': []}
+
+        # Add new model entry
+        model_entry = {
+            'name': '${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}',
+            'type': '${{ github.event.inputs.model_type || 'clip' }}',
+            'path': '${{ env.MODEL_PATH }}',
+            'uploaded_at': datetime.now().isoformat(),
+            'commit_sha': os.getenv('GITHUB_SHA'),
+            'hf_url': 'https://huggingface.co/${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}'
+        }
+
+        # Update or add model entry
+        existing_idx = None
+        for i, model in enumerate(registry['models']):
+            if model['name'] == model_entry['name']:
+                existing_idx = i
+                break
+
+        if existing_idx is not None:
+            registry['models'][existing_idx] = model_entry
+        else:
+            registry['models'].append(model_entry)
+
+        # Save registry
+        with open(registry_file, 'w') as f:
+            json.dump(registry, f, indent=2)
+
+        print(f'Updated model registry with {model_entry[\"name\"]}')
+        "
+
+    - name: Commit registry updates
+      run: |
+        if [ -f model_registry.json ]; then
+          git add model_registry.json
+          git commit -m "Update model registry: ${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}" || echo "No changes to commit"
+          git push || echo "No changes to push"
+        fi
+
+  validate-upload:
+    runs-on: ubuntu-latest
+    needs: sync-to-hf
+
+    steps:
+    - name: Validate model on Hugging Face Hub
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        python -c "
+        from huggingface_hub import HfApi
+        from transformers import CLIPModel, CLIPProcessor
+
+        api = HfApi()
+        repo_name = '${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}'
+
+        try:
+            # Check if model exists and is accessible
+            repo_info = api.repo_info(repo_id=repo_name)
+            print(f'✅ Repository {repo_name} is accessible')
+            print(f'   Last modified: {repo_info.lastModified}')
+            print(f'   Downloads: {repo_info.downloads}')
+
+            # Try to load the model
+            if '${{ github.event.inputs.model_type || 'clip' }}' == 'clip':
+                model = CLIPModel.from_pretrained(repo_name)
+                processor = CLIPProcessor.from_pretrained(repo_name)
+                print(f'✅ CLIP model loaded successfully')
+                print(f'   Model config: {model.config}')
+
+        except Exception as e:
+            print(f'❌ Validation failed: {e}')
+            exit(1)
+        "
+
+  notify-sync:
+    runs-on: ubuntu-latest
+    needs: [sync-to-hf, validate-upload]
+    if: always()
+
+    steps:
+    - name: Notify Slack on success
+      if: needs.sync-to-hf.result == 'success' && needs.validate-upload.result == 'success'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: |
+          🤗 Model sync completed successfully!
+
+          Repository: https://huggingface.co/${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}
+          Model Type: ${{ github.event.inputs.model_type || 'clip' }}
+          Commit: ${{ github.sha }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Notify Slack on failure
+      if: needs.sync-to-hf.result == 'failure' || needs.validate-upload.result == 'failure'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: "❌ Model sync to Hugging Face failed for ${{ github.event.inputs.repo_name || 'ecommerce-rag-clip' }}"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

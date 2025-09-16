@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  ecommerce-rag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - CLIP_MODEL_NAME=openai/clip-vit-base-patch32
+      - FAISS_INDEX_TYPE=flat
+      - LLM_PROVIDER=huggingface
+      - LLM_MODEL_NAME=mistralai/Mixtral-8x7B-Instruct-v0.1
+      # Add your API token here or via .env file
+      # - LLM_API_TOKEN=your_token_here
+    volumes:
+      - ./data:/app/data:ro
+      - ./models:/app/models
+      - ./logs:/app/logs
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Redis for caching (if implemented)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - "cache"
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - ecommerce-rag
+    restart: unless-stopped
+    profiles:
+      - "production"
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: ecommerce-rag-network

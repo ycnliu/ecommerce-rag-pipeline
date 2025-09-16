@@ -1,0 +1,50 @@
+# Default configuration for E-commerce RAG Pipeline
+
+app:
+  name: "E-commerce RAG Pipeline"
+  debug: false
+  log_level: "INFO"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+  allowed_origins: ["*"]
+  max_file_size_mb: 10
+
+embedding:
+  model_name: "openai/clip-vit-base-patch32"
+  dimension: 512
+  device: null  # auto-detect
+  cache_dir: "models/cache"
+  batch_size: 32
+
+vector_db:
+  index_type: "flat"  # flat, ivf, hnsw
+  metric: "l2"  # l2, ip
+  nlist: 100
+  nprobe: 10
+  index_path: "models/product_index.faiss"
+  metadata_path: "models/product_metadata.pkl"
+
+llm:
+  provider: "huggingface"
+  model_name: "mistralai/Mixtral-8x7B-Instruct-v0.1"
+  api_token: null  # Set via environment variable
+  base_url: null
+  max_tokens: 300
+  temperature: 0.1
+
+data:
+  csv_path: null  # Set via environment variable
+  embeddings_cache_path: "models/embeddings_cache.npy"
+
+processing:
+  max_prompt_chars: 6000
+  search_k_default: 5
+  search_k_max: 50
+
+logging:
+  file_path: "logs/app.log"
+  rotation: "10 MB"
+  retention: "1 week"
