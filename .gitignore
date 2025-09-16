@@ -112,3 +112,8 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Test outputs and artifacts
+tests/manual/outputs/
+tests/integration/outputs/
+*.test.log
