@@ -121,9 +121,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-artifacts, quality-gates]
     if: github.event_name == 'pull_request'
-    environment:
-      name: preview
-      url: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PREVIEW }}
 
     steps:
     - uses: actions/checkout@v4
@@ -138,27 +135,15 @@ jobs:
       run: |
         pip install huggingface_hub
 
-    - name: Create Preview Space if not exists
+    - name: Verify HF Token
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        python3 -c "
-        from huggingface_hub import create_repo
-        import os
-        token = os.environ['HF_TOKEN']
-        try:
-            create_repo(
-                repo_id='${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PREVIEW }}',
-                repo_type='space',
-                space_sdk='gradio',
-                exist_ok=True,
-                token=token,
-                private=False
-            )
-            print('Preview Space created/verified')
-        except Exception as e:
-            print(f'Space creation note: {e}')
-        "
+        if [ -z "$HF_TOKEN" ]; then
+          echo "ERROR: HF_TOKEN secret is not set"
+          exit 1
+        fi
+        echo "HF_TOKEN is configured"
 
     - name: Deploy to Preview Space
       env:
@@ -194,9 +179,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-artifacts, quality-gates]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PROD }}
 
     steps:
     - uses: actions/checkout@v4
@@ -211,27 +193,15 @@ jobs:
       run: |
         pip install huggingface_hub
 
-    - name: Create Space if not exists
+    - name: Verify HF Token
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        python3 -c "
-        from huggingface_hub import create_repo, HfApi
-        import os
-        token = os.environ['HF_TOKEN']
-        try:
-            create_repo(
-                repo_id='${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PROD }}',
-                repo_type='space',
-                space_sdk='gradio',
-                exist_ok=True,
-                token=token,
-                private=False
-            )
-            print('Space created/verified: ${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PROD }}')
-        except Exception as e:
-            print(f'Space creation note: {e}')
-        "
+        if [ -z "$HF_TOKEN" ]; then
+          echo "ERROR: HF_TOKEN secret is not set"
+          exit 1
+        fi
+        echo "HF_TOKEN is configured (length: ${#HF_TOKEN})"
 
     - name: Deploy to Production Space
       env:
@@ -240,7 +210,7 @@ jobs:
         python scripts/deploy_to_space.py \
           --space-id ${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PROD }} \
           --source-dir space/ \
-          --commit-message "Deploy: ${GITHUB_SHA:0:7} - ${{ github.event.head_commit.message }}"
+          --commit-message "Deploy: ${GITHUB_SHA:0:7}"
 
     - name: Smoke test production
       continue-on-error: true
