@@ -9,13 +9,14 @@ import time
 from dotenv import load_dotenv
 from loguru import logger
 
+
 def test_openai_direct():
     """Test OpenAI API directly."""
 
     # Load environment variables
     load_dotenv()
 
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
         logger.error("No OPENAI_API_KEY found in environment")
         return
@@ -28,7 +29,7 @@ def test_openai_direct():
 
     headers = {
         "Authorization": f"Bearer {openai_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     test_prompt = """Based on the following e-commerce search results, provide helpful product recommendations:
@@ -49,14 +50,9 @@ Please provide a detailed recommendation considering features, price, and value.
 
     payload = {
         "model": "gpt-3.5-turbo",
-        "messages": [
-            {
-                "role": "user",
-                "content": test_prompt
-            }
-        ],
+        "messages": [{"role": "user", "content": test_prompt}],
         "max_tokens": 250,
-        "temperature": 0.3
+        "temperature": 0.3,
     }
 
     try:
@@ -106,7 +102,7 @@ Please provide a detailed recommendation considering features, price, and value.
         logger.error(f"❌ Request failed: {e}")
 
     # Test with a simpler query to verify basic functionality
-    logger.info("\n" + "="*50)
+    logger.info("\n" + "=" * 50)
     logger.info("🧪 Testing simple query...")
 
     simple_payload = {
@@ -114,11 +110,11 @@ Please provide a detailed recommendation considering features, price, and value.
         "messages": [
             {
                 "role": "user",
-                "content": "What are the top 3 factors to consider when buying wireless headphones?"
+                "content": "What are the top 3 factors to consider when buying wireless headphones?",
             }
         ],
         "max_tokens": 100,
-        "temperature": 0.3
+        "temperature": 0.3,
     }
 
     try:
@@ -144,9 +140,9 @@ Please provide a detailed recommendation considering features, price, and value.
         logger.error(f"❌ Simple query error: {e}")
 
     # Summary
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("📋 OPENAI API INTEGRATION SUMMARY")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     print("\n🔑 API Configuration:")
     print(f"   Key: {openai_key[:14]}...{openai_key[-4:]}")
@@ -169,6 +165,7 @@ Please provide a detailed recommendation considering features, price, and value.
     print("   1. Update .env: LLM_PROVIDER=openai")
     print("   2. Deploy with OpenAI for better responses")
     print("   3. Monitor costs and usage patterns")
+
 
 if __name__ == "__main__":
     test_openai_direct()

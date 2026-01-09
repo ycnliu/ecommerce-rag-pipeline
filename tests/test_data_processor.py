@@ -1,6 +1,7 @@
 """
 Tests for data processing functionality.
 """
+
 import pytest
 import pandas as pd
 import tempfile
@@ -31,13 +32,15 @@ class TestDataProcessor:
 
     def test_build_text_for_embedding(self, data_processor):
         """Test text combination for embeddings."""
-        sample_row = pd.Series({
-            'Product Name': 'Test Product',
-            'Category': 'Electronics',
-            'Selling Price': '$99.99',
-            'Model Number': 'TP123',
-            'About Product': 'Great product'
-        })
+        sample_row = pd.Series(
+            {
+                "Product Name": "Test Product",
+                "Category": "Electronics",
+                "Selling Price": "$99.99",
+                "Model Number": "TP123",
+                "About Product": "Great product",
+            }
+        )
 
         result = data_processor.build_text_for_embedding(sample_row)
 
@@ -49,13 +52,15 @@ class TestDataProcessor:
 
     def test_build_text_for_embedding_excludes_not_available(self, data_processor):
         """Test that 'Not available' values are excluded from embedding text."""
-        sample_row = pd.Series({
-            'Product Name': 'Test Product',
-            'Category': 'Not available',
-            'Selling Price': '$99.99',
-            'Model Number': 'Not available',
-            'About Product': 'Great product'
-        })
+        sample_row = pd.Series(
+            {
+                "Product Name": "Test Product",
+                "Category": "Not available",
+                "Selling Price": "$99.99",
+                "Model Number": "Not available",
+                "About Product": "Great product",
+            }
+        )
 
         result = data_processor.build_text_for_embedding(sample_row)
 
@@ -72,9 +77,9 @@ class TestDataProcessor:
         metadata_list = data_processor.create_metadata(df_cleaned)
 
         assert len(metadata_list) == 2
-        assert all(hasattr(meta, 'combined_text') for meta in metadata_list)
-        assert all(hasattr(meta, 'product_url') for meta in metadata_list)
-        assert all(hasattr(meta, 'image_url') for meta in metadata_list)
+        assert all(hasattr(meta, "combined_text") for meta in metadata_list)
+        assert all(hasattr(meta, "product_url") for meta in metadata_list)
+        assert all(hasattr(meta, "image_url") for meta in metadata_list)
 
     def test_process_full_pipeline(self, data_processor, temp_csv_file):
         """Test complete data processing pipeline."""
@@ -83,7 +88,7 @@ class TestDataProcessor:
         assert isinstance(df, pd.DataFrame)
         assert len(df) == 2
         assert len(metadata_list) == 2
-        assert 'combined_text' in df.columns
+        assert "combined_text" in df.columns
 
 
 class TestTextProcessor:
@@ -112,7 +117,7 @@ class TestTextProcessor:
             {"combined_text": "Gaming mouse wireless RGB"},
             {"combined_text": "Keyboard mechanical blue"},
             {"combined_text": "Mouse pad large gaming"},
-            {"combined_text": "Wireless gaming headset"}
+            {"combined_text": "Wireless gaming headset"},
         ]
 
         reranked = TextProcessor.rerank_by_text_similarity(query, items)
@@ -142,20 +147,22 @@ class TestGroundTruthGenerator:
         df_cleaned = processor.clean_data(df)
 
         # Create test data with similar products
-        test_data = pd.DataFrame({
-            'Product Name': [
-                'Wireless Mouse Gaming',
-                'Gaming Mouse Wireless',
-                'Keyboard Mechanical',
-                'Mouse Pad Gaming'
-            ],
-            'Category': [
-                'Electronics',
-                'Electronics',
-                'Electronics',
-                'Electronics'
-            ]
-        })
+        test_data = pd.DataFrame(
+            {
+                "Product Name": [
+                    "Wireless Mouse Gaming",
+                    "Gaming Mouse Wireless",
+                    "Keyboard Mechanical",
+                    "Mouse Pad Gaming",
+                ],
+                "Category": [
+                    "Electronics",
+                    "Electronics",
+                    "Electronics",
+                    "Electronics",
+                ],
+            }
+        )
 
         generator = GroundTruthGenerator(test_data)
         matches = generator.ground_truth_fn(0)
@@ -165,16 +172,12 @@ class TestGroundTruthGenerator:
 
     def test_ground_truth_fn_different_categories(self):
         """Test that ground truth doesn't match different categories."""
-        test_data = pd.DataFrame({
-            'Product Name': [
-                'Wireless Mouse Gaming',
-                'Gaming Mouse Wireless'
-            ],
-            'Category': [
-                'Electronics',
-                'Home & Garden'
-            ]
-        })
+        test_data = pd.DataFrame(
+            {
+                "Product Name": ["Wireless Mouse Gaming", "Gaming Mouse Wireless"],
+                "Category": ["Electronics", "Home & Garden"],
+            }
+        )
 
         generator = GroundTruthGenerator(test_data)
         matches = generator.ground_truth_fn(0)
@@ -184,16 +187,15 @@ class TestGroundTruthGenerator:
 
     def test_ground_truth_fn_insufficient_overlap(self):
         """Test that ground truth requires sufficient token overlap."""
-        test_data = pd.DataFrame({
-            'Product Name': [
-                'Wireless Gaming Mouse RGB',
-                'Blue Mechanical Keyboard'
-            ],
-            'Category': [
-                'Electronics',
-                'Electronics'
-            ]
-        })
+        test_data = pd.DataFrame(
+            {
+                "Product Name": [
+                    "Wireless Gaming Mouse RGB",
+                    "Blue Mechanical Keyboard",
+                ],
+                "Category": ["Electronics", "Electronics"],
+            }
+        )
 
         generator = GroundTruthGenerator(test_data)
         matches = generator.ground_truth_fn(0)

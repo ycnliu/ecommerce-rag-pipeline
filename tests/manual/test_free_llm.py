@@ -5,7 +5,8 @@ Test script for free LLM response generation in e-commerce RAG pipeline.
 import os
 import sys
 import time
-sys.path.append('src')
+
+sys.path.append("src")
 
 from src.embedding.service import CLIPEmbeddingService
 from src.vector_db.faiss_service import FAISSVectorDB
@@ -15,9 +16,10 @@ from src.utils.logging import setup_logging
 from src.utils.config import Config
 from loguru import logger
 
+
 def test_free_llm_responses():
     """Test free LLM response generation with search results."""
-    os.environ['DEVICE'] = 'mps'
+    os.environ["DEVICE"] = "mps"
     config = Config()
     setup_logging(config)
 
@@ -25,13 +27,14 @@ def test_free_llm_responses():
 
     # Initialize components
     embedding_service = CLIPEmbeddingService(
-        model_name="openai/clip-vit-base-patch32",
-        device="mps"
+        model_name="openai/clip-vit-base-patch32", device="mps"
     )
     embedding_service.load_model()
 
     vector_db = FAISSVectorDB(dimension=512)
-    vector_db.load_index("models/test/product_index.faiss", "models/test/product_metadata.pkl")
+    vector_db.load_index(
+        "models/test/product_index.faiss", "models/test/product_metadata.pkl"
+    )
 
     prompt_builder = PromptBuilder()
 
@@ -41,32 +44,32 @@ def test_free_llm_responses():
             "name": "Free Fallback (No API needed)",
             "provider": "free",
             "model": "fallback",
-            "token": None
+            "token": None,
         },
         {
             "name": "Local Transformers (if available)",
             "provider": "free",
             "model": "gpt2",
-            "token": None
+            "token": None,
         },
         {
             "name": "Ollama (if running locally)",
             "provider": "ollama",
             "model": "llama2",
-            "token": None
-        }
+            "token": None,
+        },
     ]
 
     # Test queries
     test_queries = [
         "wireless bluetooth headphones under $100",
         "educational toys for 5 year old kids",
-        "kitchen appliances for small apartment"
+        "kitchen appliances for small apartment",
     ]
 
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("🧪 TESTING FREE LLM RESPONSE GENERATION")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     for config_info in free_llm_configs:
         logger.info(f"\n📋 Testing: {config_info['name']}")
@@ -76,9 +79,9 @@ def test_free_llm_responses():
         try:
             # Create LLM client
             llm_client = create_llm_client(
-                provider=config_info['provider'],
-                model_name=config_info['model'],
-                api_token=config_info['token'] or "dummy_token"
+                provider=config_info["provider"],
+                model_name=config_info["model"],
+                api_token=config_info["token"] or "dummy_token",
             )
 
             model_info = llm_client.get_model_info()
@@ -94,16 +97,13 @@ def test_free_llm_responses():
 
             # Build prompt
             prompt = prompt_builder.build_rag_prompt(
-                query=query,
-                retrieved_metadata=metadata_list
+                query=query, retrieved_metadata=metadata_list
             )
 
             # Generate response
             start_time = time.time()
             response = llm_client.generate_response(
-                prompt=prompt,
-                max_tokens=150,
-                temperature=0.7
+                prompt=prompt, max_tokens=150, temperature=0.7
             )
             generation_time = time.time() - start_time
 
@@ -114,16 +114,12 @@ def test_free_llm_responses():
             logger.error(f"❌ Failed: {e}")
 
     # Demonstrate complete RAG with free LLM
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("🎯 COMPLETE RAG PIPELINE WITH FREE LLM")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     # Use the best available free option
-    llm_client = create_llm_client(
-        provider="free",
-        model_name="gpt2",
-        api_token=None
-    )
+    llm_client = create_llm_client(provider="free", model_name="gpt2", api_token=None)
 
     for i, query in enumerate(test_queries, 1):
         logger.info(f"\n--- Test {i}: '{query}' ---")
@@ -135,21 +131,20 @@ def test_free_llm_responses():
         logger.info(f"🔍 Found {len(metadata_list)} results")
 
         # Show top 3 results
-        for j, (metadata, distance) in enumerate(zip(metadata_list[:3], distances[:3]), 1):
+        for j, (metadata, distance) in enumerate(
+            zip(metadata_list[:3], distances[:3]), 1
+        ):
             logger.info(f"   {j}. Distance: {distance:.3f}")
             logger.info(f"      Product: {metadata.combined_text[:80]}...")
 
         # Generate response
         prompt = prompt_builder.build_rag_prompt(
-            query=query,
-            retrieved_metadata=metadata_list
+            query=query, retrieved_metadata=metadata_list
         )
 
         start_time = time.time()
         response = llm_client.generate_response(
-            prompt=prompt,
-            max_tokens=200,
-            temperature=0.7
+            prompt=prompt, max_tokens=200, temperature=0.7
         )
         generation_time = time.time() - start_time
 
@@ -159,9 +154,9 @@ def test_free_llm_responses():
     logger.info("\n🎉 Free LLM testing completed!")
 
     # Show available options summary
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("📋 FREE LLM OPTIONS SUMMARY")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     print("\n🆓 Available Free LLM Options:")
     print("1. **Fallback Responses** (Always available)")
@@ -195,6 +190,7 @@ def test_free_llm_responses():
     print("   # For Transformers:")
     print("   LLM_PROVIDER=free")
     print("   LLM_MODEL_NAME=gpt2")
+
 
 if __name__ == "__main__":
     test_free_llm_responses()

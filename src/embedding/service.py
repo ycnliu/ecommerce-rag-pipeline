@@ -1,6 +1,7 @@
 """
 Embedding service using CLIP model for text and image embeddings.
 """
+
 import io
 from typing import Optional, Union, List
 from PIL import Image
@@ -20,7 +21,7 @@ class CLIPEmbeddingService:
         self,
         model_name: str = "openai/clip-vit-base-patch32",
         device: Optional[str] = None,
-        cache_dir: Optional[str] = None
+        cache_dir: Optional[str] = None,
     ):
         """
         Initialize CLIP embedding service.
@@ -44,13 +45,11 @@ class CLIPEmbeddingService:
             logger.info(f"Loading CLIP model: {self.model_name}")
 
             self.model = CLIPModel.from_pretrained(
-                self.model_name,
-                cache_dir=self.cache_dir
+                self.model_name, cache_dir=self.cache_dir
             ).to(self.device)
 
             self.processor = CLIPProcessor.from_pretrained(
-                self.model_name,
-                cache_dir=self.cache_dir
+                self.model_name, cache_dir=self.cache_dir
             )
 
             logger.info("CLIP model loaded successfully")
@@ -81,13 +80,13 @@ class CLIPEmbeddingService:
 
         try:
             inputs = self.processor(
-                text=[text],
-                return_tensors="pt",
-                truncation=True
+                text=[text], return_tensors="pt", truncation=True
             ).to(self.device)
 
             with torch.no_grad():
-                embedding = self.model.get_text_features(**inputs).squeeze().cpu().numpy()
+                embedding = (
+                    self.model.get_text_features(**inputs).squeeze().cpu().numpy()
+                )
 
             return embedding
 
@@ -95,7 +94,9 @@ class CLIPEmbeddingService:
             logger.error(f"Failed to generate text embedding: {e}")
             raise EmbeddingError(f"Failed to generate text embedding: {e}") from e
 
-    def get_image_embedding(self, image_input: Union[str, Image.Image, bytes]) -> np.ndarray:
+    def get_image_embedding(
+        self, image_input: Union[str, Image.Image, bytes]
+    ) -> np.ndarray:
         """
         Generate embedding for image input.
 
@@ -124,13 +125,12 @@ class CLIPEmbeddingService:
             else:
                 raise ValueError(f"Unsupported image input type: {type(image_input)}")
 
-            inputs = self.processor(
-                images=image,
-                return_tensors="pt"
-            ).to(self.device)
+            inputs = self.processor(images=image, return_tensors="pt").to(self.device)
 
             with torch.no_grad():
-                embedding = self.model.get_image_features(**inputs).squeeze().cpu().numpy()
+                embedding = (
+                    self.model.get_image_features(**inputs).squeeze().cpu().numpy()
+                )
 
             return embedding
 
@@ -166,7 +166,7 @@ class CLIPEmbeddingService:
         self,
         text: Optional[str] = None,
         image: Optional[Union[str, Image.Image, bytes]] = None,
-        fusion_method: str = "average"
+        fusion_method: str = "average",
     ) -> np.ndarray:
         """
         Generate combined embedding from text and/or image.
@@ -207,7 +207,9 @@ class CLIPEmbeddingService:
         else:
             raise ValueError(f"Unsupported fusion method: {fusion_method}")
 
-    def batch_text_embeddings(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
+    def batch_text_embeddings(
+        self, texts: List[str], batch_size: int = 32
+    ) -> np.ndarray:
         """
         Generate embeddings for multiple texts in batches.
 
@@ -223,18 +225,17 @@ class CLIPEmbeddingService:
         embeddings = []
 
         for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
+            batch_texts = texts[i : i + batch_size]
 
             try:
                 inputs = self.processor(
-                    text=batch_texts,
-                    return_tensors="pt",
-                    truncation=True,
-                    padding=True
+                    text=batch_texts, return_tensors="pt", truncation=True, padding=True
                 ).to(self.device)
 
                 with torch.no_grad():
-                    batch_embeddings = self.model.get_text_features(**inputs).cpu().numpy()
+                    batch_embeddings = (
+                        self.model.get_text_features(**inputs).cpu().numpy()
+                    )
                     embeddings.append(batch_embeddings)
 
             except Exception as e:
@@ -249,5 +250,5 @@ class CLIPEmbeddingService:
             "model_name": self.model_name,
             "device": self.device,
             "embedding_dim": self.model.config.projection_dim if self.model else None,
-            "model_loaded": self.model is not None
+            "model_loaded": self.model is not None,
         }

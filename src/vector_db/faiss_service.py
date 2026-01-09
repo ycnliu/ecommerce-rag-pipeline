@@ -1,6 +1,7 @@
 """
 FAISS vector database service for similarity search.
 """
+
 import os
 from typing import List, Tuple, Optional, Any, Dict
 import numpy as np
@@ -20,7 +21,7 @@ class FAISSVectorDB:
         index_type: str = "flat",
         metric: str = "l2",
         nlist: int = 100,
-        nprobe: int = 10
+        nprobe: int = 10,
     ):
         """
         Initialize FAISS vector database.
@@ -53,15 +54,24 @@ class FAISSVectorDB:
                 elif self.metric == "ip":
                     self.index = faiss.IndexFlatIP(self.dimension)
                 else:
-                    raise ValueError(f"Unsupported metric for flat index: {self.metric}")
+                    raise ValueError(
+                        f"Unsupported metric for flat index: {self.metric}"
+                    )
 
             elif self.index_type == "ivf":
                 # IVF (Inverted File) index for faster approximate search
                 quantizer = faiss.IndexFlatL2(self.dimension)
                 if self.metric == "l2":
-                    self.index = faiss.IndexIVFFlat(quantizer, self.dimension, self.nlist)
+                    self.index = faiss.IndexIVFFlat(
+                        quantizer, self.dimension, self.nlist
+                    )
                 elif self.metric == "ip":
-                    self.index = faiss.IndexIVFFlat(quantizer, self.dimension, self.nlist, faiss.METRIC_INNER_PRODUCT)
+                    self.index = faiss.IndexIVFFlat(
+                        quantizer,
+                        self.dimension,
+                        self.nlist,
+                        faiss.METRIC_INNER_PRODUCT,
+                    )
                 else:
                     raise ValueError(f"Unsupported metric for IVF index: {self.metric}")
 
@@ -76,7 +86,9 @@ class FAISSVectorDB:
             else:
                 raise ValueError(f"Unsupported index type: {self.index_type}")
 
-            logger.info(f"Created FAISS {self.index_type} index with dimension {self.dimension}")
+            logger.info(
+                f"Created FAISS {self.index_type} index with dimension {self.dimension}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to create FAISS index: {e}")
@@ -86,7 +98,7 @@ class FAISSVectorDB:
         self,
         embeddings: np.ndarray,
         metadata: List[ProductMetadata],
-        train_if_needed: bool = True
+        train_if_needed: bool = True,
     ) -> None:
         """
         Add vectors and metadata to the index.
@@ -97,14 +109,18 @@ class FAISSVectorDB:
             train_if_needed: Whether to train the index if needed
         """
         if len(embeddings) != len(metadata):
-            raise ValueError("Number of embeddings must match number of metadata entries")
+            raise ValueError(
+                "Number of embeddings must match number of metadata entries"
+            )
 
         if embeddings.shape[1] != self.dimension:
-            raise ValueError(f"Embedding dimension {embeddings.shape[1]} doesn't match index dimension {self.dimension}")
+            raise ValueError(
+                f"Embedding dimension {embeddings.shape[1]} doesn't match index dimension {self.dimension}"
+            )
 
         try:
             # Ensure embeddings are float32
-            embeddings = embeddings.astype('float32')
+            embeddings = embeddings.astype("float32")
 
             # Train index if needed (for IVF)
             if self.index_type == "ivf" and not self.is_trained:
@@ -113,25 +129,28 @@ class FAISSVectorDB:
                     self.index.train(embeddings)
                     self.is_trained = True
                 elif not train_if_needed:
-                    raise VectorDBError("IVF index needs training but train_if_needed=False")
+                    raise VectorDBError(
+                        "IVF index needs training but train_if_needed=False"
+                    )
                 else:
-                    raise VectorDBError(f"Need at least {self.nlist} vectors to train IVF index")
+                    raise VectorDBError(
+                        f"Need at least {self.nlist} vectors to train IVF index"
+                    )
 
             # Add vectors to index
             self.index.add(embeddings)
             self.metadata.extend(metadata)
 
-            logger.info(f"Added {len(embeddings)} vectors to index. Total: {self.index.ntotal}")
+            logger.info(
+                f"Added {len(embeddings)} vectors to index. Total: {self.index.ntotal}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to add vectors to index: {e}")
             raise VectorDBError(f"Failed to add vectors to index: {e}") from e
 
     def search(
-        self,
-        query_embedding: np.ndarray,
-        k: int = 10,
-        return_distances: bool = True
+        self, query_embedding: np.ndarray, k: int = 10, return_distances: bool = True
     ) -> Tuple[List[ProductMetadata], Optional[List[float]]]:
         """
         Search for similar vectors.
@@ -152,7 +171,7 @@ class FAISSVectorDB:
             # Ensure query is 2D and float32
             if query_embedding.ndim == 1:
                 query_embedding = query_embedding.reshape(1, -1)
-            query_embedding = query_embedding.astype('float32')
+            query_embedding = query_embedding.astype("float32")
 
             # Perform search
             distances, indices = self.index.search(query_embedding, k)
@@ -174,9 +193,7 @@ class FAISSVectorDB:
             raise VectorDBError(f"Search failed: {e}") from e
 
     def batch_search(
-        self,
-        query_embeddings: np.ndarray,
-        k: int = 10
+        self, query_embeddings: np.ndarray, k: int = 10
     ) -> List[Tuple[List[ProductMetadata], List[float]]]:
         """
         Perform batch search for multiple queries.
@@ -193,7 +210,7 @@ class FAISSVectorDB:
             return [([], []) for _ in range(len(query_embeddings))]
 
         try:
-            query_embeddings = query_embeddings.astype('float32')
+            query_embeddings = query_embeddings.astype("float32")
             distances, indices = self.index.search(query_embeddings, k)
 
             results = []
@@ -230,7 +247,8 @@ class FAISSVectorDB:
             # Save metadata if path provided
             if metadata_path:
                 import pickle
-                with open(metadata_path, 'wb') as f:
+
+                with open(metadata_path, "wb") as f:
                     pickle.dump(self.metadata, f)
                 logger.info(f"Saved metadata to {metadata_path}")
 
@@ -255,7 +273,8 @@ class FAISSVectorDB:
             # Load metadata if path provided
             if metadata_path and os.path.exists(metadata_path):
                 import pickle
-                with open(metadata_path, 'rb') as f:
+
+                with open(metadata_path, "rb") as f:
                     self.metadata = pickle.load(f)
                 logger.info(f"Loaded metadata from {metadata_path}")
 
@@ -266,10 +285,12 @@ class FAISSVectorDB:
     def get_stats(self) -> IndexStats:
         """Get index statistics."""
         memory_usage = None
-        if hasattr(self.index, 'sa_code_size'):  # For some index types
+        if hasattr(self.index, "sa_code_size"):  # For some index types
             try:
                 # Rough estimation of memory usage
-                memory_usage = (self.index.ntotal * self.dimension * 4) / (1024 * 1024)  # MB
+                memory_usage = (self.index.ntotal * self.dimension * 4) / (
+                    1024 * 1024
+                )  # MB
             except:
                 pass
 
@@ -277,7 +298,7 @@ class FAISSVectorDB:
             total_vectors=self.index.ntotal,
             dimension=self.dimension,
             index_type=self.index_type,
-            memory_usage_mb=memory_usage
+            memory_usage_mb=memory_usage,
         )
 
     def remove_vectors(self, indices: List[int]) -> None:

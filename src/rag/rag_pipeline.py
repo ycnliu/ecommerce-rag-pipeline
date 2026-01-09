@@ -1,6 +1,7 @@
 """
 Main RAG (Retrieval-Augmented Generation) pipeline.
 """
+
 import time
 from typing import List, Optional, Tuple, Union, Dict, Any
 from PIL import Image
@@ -24,7 +25,7 @@ class RAGPipeline:
         embedding_service: CLIPEmbeddingService,
         vector_db: FAISSVectorDB,
         llm_client: BaseLLMClient,
-        prompt_builder: Optional[PromptBuilder] = None
+        prompt_builder: Optional[PromptBuilder] = None,
     ):
         """
         Initialize RAG pipeline.
@@ -50,7 +51,7 @@ class RAGPipeline:
         rerank: bool = False,
         generate_response: bool = True,
         fusion_method: str = "average",
-        llm_params: Optional[Dict[str, Any]] = None
+        llm_params: Optional[Dict[str, Any]] = None,
     ) -> QueryResponse:
         """
         Process a query through the complete RAG pipeline.
@@ -71,7 +72,9 @@ class RAGPipeline:
             RAGError: If pipeline execution fails
         """
         if not text_query and not image_query:
-            raise ValueError("At least one of text_query or image_query must be provided")
+            raise ValueError(
+                "At least one of text_query or image_query must be provided"
+            )
 
         start_time = time.time()
         display_query = text_query or "Image query"
@@ -81,16 +84,12 @@ class RAGPipeline:
 
             # Step 1: Generate query embedding
             query_embedding = self.embedding_service.get_multimodal_embedding(
-                text=text_query,
-                image=image_query,
-                fusion_method=fusion_method
+                text=text_query, image=image_query, fusion_method=fusion_method
             )
 
             # Step 2: Retrieve similar items
             retrieved_metadata, distances = self.vector_db.search(
-                query_embedding,
-                k=k,
-                return_distances=True
+                query_embedding, k=k, return_distances=True
             )
 
             if not retrieved_metadata:
@@ -99,7 +98,7 @@ class RAGPipeline:
                     query=display_query,
                     results=[],
                     generated_response="I'm sorry, but I couldn't find any relevant products for your query.",
-                    processing_time=time.time() - start_time
+                    processing_time=time.time() - start_time,
                 )
 
             # Step 3: Optional reranking
@@ -107,20 +106,25 @@ class RAGPipeline:
                 logger.info("Reranking results based on text similarity")
                 # Convert metadata to dict format for reranking
                 metadata_dicts = [meta.dict() for meta in retrieved_metadata]
-                reranked_dicts = TextProcessor.rerank_by_text_similarity(text_query, metadata_dicts)
+                reranked_dicts = TextProcessor.rerank_by_text_similarity(
+                    text_query, metadata_dicts
+                )
 
                 # Convert back to ProductMetadata
-                retrieved_metadata = [ProductMetadata(**meta_dict) for meta_dict in reranked_dicts]
+                retrieved_metadata = [
+                    ProductMetadata(**meta_dict) for meta_dict in reranked_dicts
+                ]
                 # Note: distances are no longer accurate after reranking
                 distances = [0.0] * len(retrieved_metadata)
 
             # Step 4: Create search results
             search_results = []
-            for i, (metadata, distance) in enumerate(zip(retrieved_metadata, distances)):
-                search_results.append(SearchResult(
-                    score=float(distance),
-                    metadata=metadata
-                ))
+            for i, (metadata, distance) in enumerate(
+                zip(retrieved_metadata, distances)
+            ):
+                search_results.append(
+                    SearchResult(score=float(distance), metadata=metadata)
+                )
 
             # Step 5: Generate response if requested
             generated_response = None
@@ -129,7 +133,7 @@ class RAGPipeline:
                 generated_response = self._generate_response(
                     text_query or "Describe these products",
                     retrieved_metadata,
-                    llm_params or {}
+                    llm_params or {},
                 )
 
             processing_time = time.time() - start_time
@@ -139,7 +143,7 @@ class RAGPipeline:
                 query=display_query,
                 results=search_results,
                 generated_response=generated_response,
-                processing_time=processing_time
+                processing_time=processing_time,
             )
 
         except Exception as e:
@@ -150,7 +154,7 @@ class RAGPipeline:
         self,
         query: str,
         retrieved_metadata: List[ProductMetadata],
-        llm_params: Dict[str, Any]
+        llm_params: Dict[str, Any],
     ) -> str:
         """
         Generate LLM response from query and retrieved context.
@@ -171,7 +175,7 @@ class RAGPipeline:
             default_params = {
                 "max_tokens": 300,
                 "temperature": 0.1,
-                "stop_sequences": ["\nUser question:", "\nQ:"]
+                "stop_sequences": ["\nUser question:", "\nQ:"],
             }
             default_params.update(llm_params)
 
@@ -185,9 +189,7 @@ class RAGPipeline:
             return "I apologize, but I encountered an error while generating a response. Please try again."
 
     def batch_query(
-        self,
-        queries: List[QueryRequest],
-        generate_responses: bool = True
+        self, queries: List[QueryRequest], generate_responses: bool = True
     ) -> List[QueryResponse]:
         """
         Process multiple queries in batch.
@@ -211,7 +213,7 @@ class RAGPipeline:
                     image_query=query_request.image_query,
                     k=query_request.k,
                     rerank=query_request.rerank,
-                    generate_response=generate_responses
+                    generate_response=generate_responses,
                 )
                 results.append(response)
 
@@ -222,7 +224,7 @@ class RAGPipeline:
                     query=query_request.text_query or "Image query",
                     results=[],
                     generated_response=f"Error processing query: {str(e)}",
-                    processing_time=0.0
+                    processing_time=0.0,
                 )
                 results.append(error_response)
 
@@ -230,10 +232,7 @@ class RAGPipeline:
         return results
 
     def get_similar_products(
-        self,
-        product_metadata: ProductMetadata,
-        k: int = 5,
-        exclude_self: bool = True
+        self, product_metadata: ProductMetadata, k: int = 5, exclude_self: bool = True
     ) -> List[SearchResult]:
         """
         Find products similar to a given product.
@@ -254,15 +253,16 @@ class RAGPipeline:
 
             # Search for similar products
             retrieved_metadata, distances = self.vector_db.search(
-                embedding,
-                k=k + (1 if exclude_self else 0),
-                return_distances=True
+                embedding, k=k + (1 if exclude_self else 0), return_distances=True
             )
 
             # Filter out self if needed
             results = []
             for metadata, distance in zip(retrieved_metadata, distances):
-                if exclude_self and metadata.product_url == product_metadata.product_url:
+                if (
+                    exclude_self
+                    and metadata.product_url == product_metadata.product_url
+                ):
                     continue
                 results.append(SearchResult(score=float(distance), metadata=metadata))
 
@@ -276,7 +276,7 @@ class RAGPipeline:
         self,
         query: str,
         recommended_products: List[ProductMetadata],
-        explanation_style: str = "detailed"
+        explanation_style: str = "detailed",
     ) -> str:
         """
         Generate explanation for why products were recommended.
@@ -306,12 +306,11 @@ class RAGPipeline:
                 f"Explain why these products were recommended for: {query}",
                 recommended_products,
                 include_examples=False,
-                custom_instructions=custom_instructions
+                custom_instructions=custom_instructions,
             )
 
             explanation = self.llm_client.generate_response(
-                prompt,
-                max_tokens=200 if explanation_style == "brief" else 400
+                prompt, max_tokens=200 if explanation_style == "brief" else 400
             )
 
             return explanation
@@ -326,7 +325,5 @@ class RAGPipeline:
             "embedding_service": self.embedding_service.get_model_info(),
             "vector_db": self.vector_db.get_stats().dict(),
             "llm_client": self.llm_client.get_model_info(),
-            "prompt_builder": {
-                "max_chars": self.prompt_builder.max_chars
-            }
+            "prompt_builder": {"max_chars": self.prompt_builder.max_chars},
         }

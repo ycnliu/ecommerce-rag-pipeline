@@ -1,6 +1,7 @@
 """
 Tests for the FastAPI application.
 """
+
 import pytest
 import json
 from unittest.mock import Mock, patch
@@ -17,15 +18,18 @@ class TestAPIEndpoints:
     @pytest.fixture
     def client(self, mock_rag_pipeline):
         """FastAPI test client with mocked dependencies."""
+
         def override_get_rag_pipeline():
             return mock_rag_pipeline
 
         def override_get_config():
             from src.utils.config import Config
+
             return Config(llm_api_token="test_token")
 
         # Override dependencies
         from src.api.dependencies import get_rag_pipeline, get_config
+
         app.dependency_overrides[get_rag_pipeline] = override_get_rag_pipeline
         app.dependency_overrides[get_config] = override_get_config
 
@@ -52,9 +56,7 @@ class TestAPIEndpoints:
             "model_loaded": True
         }
         mock_rag_pipeline.vector_db.get_stats.return_value = Mock(
-            total_vectors=100,
-            dimension=512,
-            index_type="flat"
+            total_vectors=100, dimension=512, index_type="flat"
         )
         mock_rag_pipeline.llm_client.get_model_info.return_value = {
             "model_name": "test_model"
@@ -75,14 +77,11 @@ class TestAPIEndpoints:
             query="test query",
             results=[],
             generated_response="Test response",
-            processing_time=0.1
+            processing_time=0.1,
         )
         mock_rag_pipeline.query.return_value = mock_response
 
-        request_data = {
-            "text_query": "test query",
-            "k": 5
-        }
+        request_data = {"text_query": "test query", "k": 5}
 
         response = client.post("/search", json=request_data)
 
@@ -98,15 +97,11 @@ class TestAPIEndpoints:
             query="test query",
             results=[],
             generated_response="Test response",
-            processing_time=0.1
+            processing_time=0.1,
         )
         mock_rag_pipeline.query.return_value = mock_response
 
-        request_data = {
-            "text_query": "test query",
-            "k": 5,
-            "rerank": True
-        }
+        request_data = {"text_query": "test query", "k": 5, "rerank": True}
 
         response = client.post("/search", json=request_data)
 
@@ -117,7 +112,7 @@ class TestAPIEndpoints:
             image_query=None,
             k=5,
             rerank=True,
-            generate_response=True
+            generate_response=True,
         )
 
     def test_search_image_upload(self, client, mock_rag_pipeline):
@@ -126,7 +121,7 @@ class TestAPIEndpoints:
             query="Image query",
             results=[],
             generated_response="Test response",
-            processing_time=0.1
+            processing_time=0.1,
         )
         mock_rag_pipeline.query.return_value = mock_response
 
@@ -154,8 +149,11 @@ class TestAPIEndpoints:
     def test_text_embedding_endpoint(self, client, mock_rag_pipeline):
         """Test text embedding endpoint."""
         import numpy as np
+
         mock_embedding = np.random.rand(512)
-        mock_rag_pipeline.embedding_service.get_text_embedding.return_value = mock_embedding
+        mock_rag_pipeline.embedding_service.get_text_embedding.return_value = (
+            mock_embedding
+        )
 
         request_data = {"text": "test text"}
 
@@ -179,8 +177,11 @@ class TestAPIEndpoints:
     def test_image_embedding_endpoint(self, client, mock_rag_pipeline):
         """Test image embedding endpoint."""
         import numpy as np
+
         mock_embedding = np.random.rand(512)
-        mock_rag_pipeline.embedding_service.get_image_embedding.return_value = mock_embedding
+        mock_rag_pipeline.embedding_service.get_image_embedding.return_value = (
+            mock_embedding
+        )
 
         image_data = b"fake_image_data"
         files = {"file": ("test.jpg", image_data, "image/jpeg")}
@@ -198,7 +199,7 @@ class TestAPIEndpoints:
         mock_stats = {
             "embedding_service": {"model_name": "test_model"},
             "vector_db": {"total_vectors": 100},
-            "llm_client": {"model_name": "test_llm"}
+            "llm_client": {"model_name": "test_llm"},
         }
         mock_rag_pipeline.get_pipeline_stats.return_value = mock_stats
 
@@ -217,20 +218,20 @@ class TestAPIEndpoints:
                 query="query 1",
                 results=[],
                 generated_response="response 1",
-                processing_time=0.1
+                processing_time=0.1,
             ),
             QueryResponse(
                 query="query 2",
                 results=[],
                 generated_response="response 2",
-                processing_time=0.1
-            )
+                processing_time=0.1,
+            ),
         ]
         mock_rag_pipeline.batch_query.return_value = mock_responses
 
         request_data = [
             {"text_query": "query 1", "k": 5},
-            {"text_query": "query 2", "k": 3}
+            {"text_query": "query 2", "k": 3},
         ]
 
         response = client.post("/batch/search", json=request_data)
@@ -263,7 +264,9 @@ class TestAPIEndpoints:
 
     def test_error_handling_embedding_error(self, client, mock_rag_pipeline):
         """Test error handling for embedding errors."""
-        mock_rag_pipeline.embedding_service.get_text_embedding.side_effect = EmbeddingError("Test embedding error")
+        mock_rag_pipeline.embedding_service.get_text_embedding.side_effect = (
+            EmbeddingError("Test embedding error")
+        )
 
         request_data = {"text": "test text"}
 
@@ -292,10 +295,7 @@ class TestAPIEndpoints:
 
     def test_validation_error_k_parameter(self, client):
         """Test validation for k parameter."""
-        request_data = {
-            "text_query": "test query",
-            "k": 100  # Exceeds max limit of 50
-        }
+        request_data = {"text_query": "test query", "k": 100}  # Exceeds max limit of 50
 
         response = client.post("/search", json=request_data)
 

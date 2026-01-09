@@ -1,6 +1,7 @@
 """
 CLIP fine-tuning module for domain adaptation on e-commerce data.
 """
+
 import os
 import json
 from typing import List, Dict, Any, Optional, Tuple, Union
@@ -15,8 +16,10 @@ import requests
 from transformers import CLIPProcessor, CLIPModel, CLIPConfig
 from transformers import get_linear_schedule_with_warmup
 from loguru import logger
+
 try:
     import wandb
+
     WANDB_AVAILABLE = True
 except ImportError:
     WANDB_AVAILABLE = False
@@ -35,7 +38,7 @@ class EcommerceDataset(Dataset):
         products: List[ProductMetadata],
         processor: CLIPProcessor,
         max_text_length: int = 77,
-        image_timeout: int = 10
+        image_timeout: int = 10,
     ):
         """
         Initialize e-commerce dataset.
@@ -53,7 +56,9 @@ class EcommerceDataset(Dataset):
 
         # Filter products with valid images and text
         self.valid_products = self._filter_valid_products()
-        logger.info(f"Dataset initialized with {len(self.valid_products)} valid products")
+        logger.info(
+            f"Dataset initialized with {len(self.valid_products)} valid products"
+        )
 
     def _filter_valid_products(self) -> List[ProductMetadata]:
         """Filter products with valid text and accessible images."""
@@ -61,10 +66,10 @@ class EcommerceDataset(Dataset):
 
         for product in self.products:
             if (
-                product.combined_text and
-                len(product.combined_text.strip()) > 10 and
-                product.image_url and
-                self._is_valid_image_url(product.image_url)
+                product.combined_text
+                and len(product.combined_text.strip()) > 10
+                and product.image_url
+                and self._is_valid_image_url(product.image_url)
             ):
                 valid_products.append(product)
 
@@ -74,12 +79,14 @@ class EcommerceDataset(Dataset):
         """Check if image URL is valid and accessible."""
         try:
             # Take first URL if multiple are provided
-            url = url.split('|')[0].strip()
-            if not url or 'transparent-pixel' in url.lower():
+            url = url.split("|")[0].strip()
+            if not url or "transparent-pixel" in url.lower():
                 return False
 
             response = requests.head(url, timeout=5)
-            return response.status_code == 200 and 'image' in response.headers.get('content-type', '')
+            return response.status_code == 200 and "image" in response.headers.get(
+                "content-type", ""
+            )
 
         except Exception:
             return False
@@ -88,7 +95,7 @@ class EcommerceDataset(Dataset):
         """Load image from URL with error handling."""
         try:
             # Take first URL if multiple are provided
-            url = url.split('|')[0].strip()
+            url = url.split("|")[0].strip()
             response = requests.get(url, timeout=self.image_timeout)
             response.raise_for_status()
             return Image.open(requests.get(url, stream=True).raw).convert("RGB")
@@ -108,7 +115,7 @@ class EcommerceDataset(Dataset):
         image = self._load_image(product.image_url)
         if image is None:
             # Return dummy image if loading fails
-            image = Image.new('RGB', (224, 224), color='white')
+            image = Image.new("RGB", (224, 224), color="white")
 
         # Process text and image
         inputs = self.processor(
@@ -117,14 +124,14 @@ class EcommerceDataset(Dataset):
             return_tensors="pt",
             padding=True,
             truncation=True,
-            max_length=self.max_text_length
+            max_length=self.max_text_length,
         )
 
         return {
-            'input_ids': inputs['input_ids'].squeeze(),
-            'attention_mask': inputs['attention_mask'].squeeze(),
-            'pixel_values': inputs['pixel_values'].squeeze(),
-            'product_id': product.product_url
+            "input_ids": inputs["input_ids"].squeeze(),
+            "attention_mask": inputs["attention_mask"].squeeze(),
+            "pixel_values": inputs["pixel_values"].squeeze(),
+            "product_id": product.product_url,
         }
 
 
@@ -142,9 +149,7 @@ class ContrastiveLoss(nn.Module):
         self.temperature = temperature
 
     def forward(
-        self,
-        text_features: torch.Tensor,
-        image_features: torch.Tensor
+        self, text_features: torch.Tensor, image_features: torch.Tensor
     ) -> torch.Tensor:
         """
         Compute contrastive loss.
@@ -192,7 +197,7 @@ class DomainAdaptationLoss(nn.Module):
         self,
         text_features: torch.Tensor,
         image_features: torch.Tensor,
-        category_labels: Optional[torch.Tensor] = None
+        category_labels: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Compute combined loss.
@@ -208,23 +213,18 @@ class DomainAdaptationLoss(nn.Module):
         # Primary contrastive loss
         contrastive_loss = self.contrastive_loss(text_features, image_features)
 
-        losses = {
-            'contrastive_loss': contrastive_loss,
-            'total_loss': contrastive_loss
-        }
+        losses = {"contrastive_loss": contrastive_loss, "total_loss": contrastive_loss}
 
         # Add category-based clustering loss if labels provided
         if category_labels is not None:
             category_loss = self._compute_category_loss(text_features, category_labels)
-            losses['category_loss'] = category_loss
-            losses['total_loss'] = contrastive_loss + self.alpha * category_loss
+            losses["category_loss"] = category_loss
+            losses["total_loss"] = contrastive_loss + self.alpha * category_loss
 
         return losses
 
     def _compute_category_loss(
-        self,
-        features: torch.Tensor,
-        category_labels: torch.Tensor
+        self, features: torch.Tensor, category_labels: torch.Tensor
     ) -> torch.Tensor:
         """Compute category-based clustering loss."""
         # Simple implementation: encourage same-category items to be closer
@@ -250,7 +250,7 @@ class CLIPFineTuner:
         self,
         model_name: str = "openai/clip-vit-base-patch32",
         device: Optional[str] = None,
-        output_dir: str = "fine_tuned_models"
+        output_dir: str = "fine_tuned_models",
     ):
         """
         Initialize CLIP fine-tuner.
@@ -294,7 +294,7 @@ class CLIPFineTuner:
         products: List[ProductMetadata],
         train_ratio: float = 0.8,
         batch_size: int = 16,
-        num_workers: int = 4
+        num_workers: int = 4,
     ) -> Tuple[DataLoader, DataLoader]:
         """
         Prepare training and validation data loaders.
@@ -326,7 +326,7 @@ class CLIPFineTuner:
             batch_size=batch_size,
             shuffle=True,
             num_workers=num_workers,
-            pin_memory=True
+            pin_memory=True,
         )
 
         val_loader = DataLoader(
@@ -334,10 +334,12 @@ class CLIPFineTuner:
             batch_size=batch_size,
             shuffle=False,
             num_workers=num_workers,
-            pin_memory=True
+            pin_memory=True,
         )
 
-        logger.info(f"Prepared data: {len(train_dataset)} train, {len(val_dataset)} val samples")
+        logger.info(
+            f"Prepared data: {len(train_dataset)} train, {len(val_dataset)} val samples"
+        )
         return train_loader, val_loader
 
     def setup_training(
@@ -345,7 +347,7 @@ class CLIPFineTuner:
         learning_rate: float = 1e-5,
         weight_decay: float = 0.01,
         warmup_steps: int = 100,
-        total_steps: Optional[int] = None
+        total_steps: Optional[int] = None,
     ) -> None:
         """
         Setup optimizer and scheduler for training.
@@ -361,9 +363,7 @@ class CLIPFineTuner:
 
         # Setup optimizer
         self.optimizer = optim.AdamW(
-            self.model.parameters(),
-            lr=learning_rate,
-            weight_decay=weight_decay
+            self.model.parameters(), lr=learning_rate, weight_decay=weight_decay
         )
 
         # Setup scheduler if total_steps provided
@@ -371,16 +371,15 @@ class CLIPFineTuner:
             self.scheduler = get_linear_schedule_with_warmup(
                 self.optimizer,
                 num_warmup_steps=warmup_steps,
-                num_training_steps=total_steps
+                num_training_steps=total_steps,
             )
 
-        logger.info(f"Setup training with lr={learning_rate}, weight_decay={weight_decay}")
+        logger.info(
+            f"Setup training with lr={learning_rate}, weight_decay={weight_decay}"
+        )
 
     def train_epoch(
-        self,
-        train_loader: DataLoader,
-        loss_fn: nn.Module,
-        epoch: int
+        self, train_loader: DataLoader, loss_fn: nn.Module, epoch: int
     ) -> Dict[str, float]:
         """
         Train for one epoch.
@@ -401,20 +400,20 @@ class CLIPFineTuner:
 
         for batch in pbar:
             # Move batch to device
-            input_ids = batch['input_ids'].to(self.device)
-            attention_mask = batch['attention_mask'].to(self.device)
-            pixel_values = batch['pixel_values'].to(self.device)
+            input_ids = batch["input_ids"].to(self.device)
+            attention_mask = batch["attention_mask"].to(self.device)
+            pixel_values = batch["pixel_values"].to(self.device)
 
             # Forward pass
             outputs = self.model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                pixel_values=pixel_values
+                pixel_values=pixel_values,
             )
 
             # Compute loss
             loss_dict = loss_fn(outputs.text_embeds, outputs.image_embeds)
-            loss = loss_dict['total_loss']
+            loss = loss_dict["total_loss"]
 
             # Backward pass
             self.optimizer.zero_grad()
@@ -429,18 +428,14 @@ class CLIPFineTuner:
             num_batches += 1
 
             # Update progress bar
-            pbar.set_postfix({'loss': loss.item()})
+            pbar.set_postfix({"loss": loss.item()})
 
         return {
-            'train_loss': total_loss / num_batches,
-            'learning_rate': self.optimizer.param_groups[0]['lr']
+            "train_loss": total_loss / num_batches,
+            "learning_rate": self.optimizer.param_groups[0]["lr"],
         }
 
-    def validate(
-        self,
-        val_loader: DataLoader,
-        loss_fn: nn.Module
-    ) -> Dict[str, float]:
+    def validate(self, val_loader: DataLoader, loss_fn: nn.Module) -> Dict[str, float]:
         """
         Validate the model.
 
@@ -458,25 +453,25 @@ class CLIPFineTuner:
         with torch.no_grad():
             for batch in tqdm(val_loader, desc="Validation"):
                 # Move batch to device
-                input_ids = batch['input_ids'].to(self.device)
-                attention_mask = batch['attention_mask'].to(self.device)
-                pixel_values = batch['pixel_values'].to(self.device)
+                input_ids = batch["input_ids"].to(self.device)
+                attention_mask = batch["attention_mask"].to(self.device)
+                pixel_values = batch["pixel_values"].to(self.device)
 
                 # Forward pass
                 outputs = self.model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
-                    pixel_values=pixel_values
+                    pixel_values=pixel_values,
                 )
 
                 # Compute loss
                 loss_dict = loss_fn(outputs.text_embeds, outputs.image_embeds)
-                loss = loss_dict['total_loss']
+                loss = loss_dict["total_loss"]
 
                 total_loss += loss.item()
                 num_batches += 1
 
-        return {'val_loss': total_loss / num_batches}
+        return {"val_loss": total_loss / num_batches}
 
     def fine_tune(
         self,
@@ -485,7 +480,7 @@ class CLIPFineTuner:
         num_epochs: int = 5,
         save_best: bool = True,
         use_wandb: bool = False,
-        project_name: str = "clip-ecommerce-finetuning"
+        project_name: str = "clip-ecommerce-finetuning",
     ) -> Dict[str, Any]:
         """
         Fine-tune CLIP model on e-commerce data.
@@ -502,15 +497,20 @@ class CLIPFineTuner:
             Training history
         """
         if self.model is None or self.optimizer is None:
-            raise ValueError("Model and optimizer not setup. Call load_model() and setup_training() first.")
+            raise ValueError(
+                "Model and optimizer not setup. Call load_model() and setup_training() first."
+            )
 
         # Initialize wandb if requested
         if use_wandb and WANDB_AVAILABLE:
-            wandb.init(project=project_name, config={
-                'model_name': self.model_name,
-                'num_epochs': num_epochs,
-                'learning_rate': self.optimizer.param_groups[0]['lr']
-            })
+            wandb.init(
+                project=project_name,
+                config={
+                    "model_name": self.model_name,
+                    "num_epochs": num_epochs,
+                    "learning_rate": self.optimizer.param_groups[0]["lr"],
+                },
+            )
         elif use_wandb:
             logger.warning("Weights & Biases not available, continuing without logging")
 
@@ -518,13 +518,9 @@ class CLIPFineTuner:
         loss_fn = DomainAdaptationLoss()
 
         # Training history
-        history = {
-            'train_loss': [],
-            'val_loss': [],
-            'learning_rate': []
-        }
+        history = {"train_loss": [], "val_loss": [], "learning_rate": []}
 
-        best_val_loss = float('inf')
+        best_val_loss = float("inf")
 
         for epoch in range(num_epochs):
             logger.info(f"Starting epoch {epoch + 1}/{num_epochs}")
@@ -536,9 +532,9 @@ class CLIPFineTuner:
             val_metrics = self.validate(val_loader, loss_fn)
 
             # Update history
-            history['train_loss'].append(train_metrics['train_loss'])
-            history['val_loss'].append(val_metrics['val_loss'])
-            history['learning_rate'].append(train_metrics['learning_rate'])
+            history["train_loss"].append(train_metrics["train_loss"])
+            history["val_loss"].append(val_metrics["val_loss"])
+            history["learning_rate"].append(train_metrics["learning_rate"])
 
             # Log metrics
             logger.info(
@@ -548,15 +544,11 @@ class CLIPFineTuner:
             )
 
             if use_wandb and WANDB_AVAILABLE:
-                wandb.log({
-                    'epoch': epoch + 1,
-                    **train_metrics,
-                    **val_metrics
-                })
+                wandb.log({"epoch": epoch + 1, **train_metrics, **val_metrics})
 
             # Save best model
-            if save_best and val_metrics['val_loss'] < best_val_loss:
-                best_val_loss = val_metrics['val_loss']
+            if save_best and val_metrics["val_loss"] < best_val_loss:
+                best_val_loss = val_metrics["val_loss"]
                 self.save_model(f"best_model_epoch_{epoch + 1}")
                 logger.info(f"Saved best model with val_loss={best_val_loss:.4f}")
 
@@ -588,12 +580,12 @@ class CLIPFineTuner:
 
         # Save training config
         config = {
-            'base_model': self.model_name,
-            'fine_tuned_on': 'ecommerce_data',
-            'device': self.device
+            "base_model": self.model_name,
+            "fine_tuned_on": "ecommerce_data",
+            "device": self.device,
         }
 
-        with open(save_path / "fine_tuning_config.json", 'w') as f:
+        with open(save_path / "fine_tuning_config.json", "w") as f:
             json.dump(config, f, indent=2)
 
         logger.info(f"Model saved to {save_path}")
@@ -620,7 +612,7 @@ class CLIPFineTuner:
         self,
         text_queries: List[str],
         image_urls: List[str],
-        ground_truth_pairs: List[Tuple[int, int]]
+        ground_truth_pairs: List[Tuple[int, int]],
     ) -> Dict[str, float]:
         """
         Evaluate text-image similarity performance.
@@ -652,13 +644,19 @@ class CLIPFineTuner:
             # Process images
             for url in image_urls:
                 try:
-                    image = Image.open(requests.get(url, stream=True).raw).convert("RGB")
-                    inputs = self.processor(images=image, return_tensors="pt").to(self.device)
+                    image = Image.open(requests.get(url, stream=True).raw).convert(
+                        "RGB"
+                    )
+                    inputs = self.processor(images=image, return_tensors="pt").to(
+                        self.device
+                    )
                     image_emb = self.model.get_image_features(**inputs)
                     image_embeddings.append(image_emb.cpu().numpy())
                 except Exception:
                     # Use zero embedding for failed images
-                    image_embeddings.append(np.zeros((1, self.model.config.projection_dim)))
+                    image_embeddings.append(
+                        np.zeros((1, self.model.config.projection_dim))
+                    )
 
         text_embeddings = np.vstack(text_embeddings)
         image_embeddings = np.vstack(image_embeddings)
@@ -680,7 +678,7 @@ class CLIPFineTuner:
                 correct_top5 += 1
 
         return {
-            'accuracy_top1': correct_top1 / len(ground_truth_pairs),
-            'accuracy_top5': correct_top5 / len(ground_truth_pairs),
-            'num_pairs': len(ground_truth_pairs)
+            "accuracy_top1": correct_top1 / len(ground_truth_pairs),
+            "accuracy_top5": correct_top5 / len(ground_truth_pairs),
+            "num_pairs": len(ground_truth_pairs),
         }

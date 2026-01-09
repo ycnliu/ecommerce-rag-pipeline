@@ -1,6 +1,7 @@
 """
 Utility modules for the e-commerce RAG pipeline.
 """
+
 from .config import Config
 from .exceptions import (
     EcommerceRAGError,
@@ -12,7 +13,7 @@ from .exceptions import (
     LLMError,
     RAGError,
     APIError,
-    ValidationError
+    ValidationError,
 )
 from .logging import setup_logging, get_logger, LoggerMixin
 
@@ -30,5 +31,5 @@ __all__ = [
     "ValidationError",
     "setup_logging",
     "get_logger",
-    "LoggerMixin"
+    "LoggerMixin",
 ]

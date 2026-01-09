@@ -1,6 +1,7 @@
 """
 Advanced embedding fusion strategies for multimodal search.
 """
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -31,24 +32,40 @@ class CrossModalAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(embed_dim)
 
-    def forward(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor
+    ) -> torch.Tensor:
         """Apply cross-modal attention."""
         batch_size = query.size(0)
 
         # Project to Q, K, V
-        q = self.q_proj(query).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        k = self.k_proj(key).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        v = self.v_proj(value).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        q = (
+            self.q_proj(query)
+            .view(batch_size, -1, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        k = (
+            self.k_proj(key)
+            .view(batch_size, -1, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
+        v = (
+            self.v_proj(value)
+            .view(batch_size, -1, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+        )
 
         # Attention weights
-        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.head_dim ** 0.5)
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.head_dim**0.5)
         attn_weights = F.softmax(scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
 
         # Apply attention
         attn_output = torch.matmul(attn_weights, v)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(
-            batch_size, -1, self.embed_dim
+        attn_output = (
+            attn_output.transpose(1, 2)
+            .contiguous()
+            .view(batch_size, -1, self.embed_dim)
         )
 
         # Output projection with residual connection
@@ -71,7 +88,7 @@ class DynamicWeightingModule(nn.Module):
             nn.Linear(embed_dim, embed_dim // 2),
             nn.ReLU(),
             nn.Linear(embed_dim // 2, num_modalities),
-            nn.Softmax(dim=-1)
+            nn.Softmax(dim=-1),
         )
 
     def forward(self, embeddings: List[torch.Tensor]) -> torch.Tensor:
@@ -91,7 +108,7 @@ class AdvancedEmbeddingFusion:
         sentence_model_name: str = "all-MiniLM-L6-v2",
         device: Optional[str] = None,
         target_dim: int = 512,
-        use_neural_fusion: bool = True
+        use_neural_fusion: bool = True,
     ):
         """
         Initialize advanced embedding fusion.
@@ -109,23 +126,30 @@ class AdvancedEmbeddingFusion:
 
         # Initialize CLIP service
         self.clip_service = CLIPEmbeddingService(
-            model_name=clip_model_name,
-            device=self.device
+            model_name=clip_model_name, device=self.device
         )
 
         # Initialize SentenceTransformer
-        self.sentence_model = SentenceTransformer(sentence_model_name, device=self.device)
+        self.sentence_model = SentenceTransformer(
+            sentence_model_name, device=self.device
+        )
 
         # Initialize neural fusion modules if enabled
         if self.use_neural_fusion:
             self.cross_attention = CrossModalAttention(target_dim).to(self.device)
             self.dynamic_weighting = DynamicWeightingModule(target_dim).to(self.device)
-            self.projection_layers = nn.ModuleDict({
-                'clip_proj': nn.Linear(512, target_dim),  # CLIP output is typically 512
-                'sentence_proj': nn.Linear(384, target_dim)  # MiniLM output is 384
-            }).to(self.device)
+            self.projection_layers = nn.ModuleDict(
+                {
+                    "clip_proj": nn.Linear(
+                        512, target_dim
+                    ),  # CLIP output is typically 512
+                    "sentence_proj": nn.Linear(384, target_dim),  # MiniLM output is 384
+                }
+            ).to(self.device)
 
-        logger.info(f"Initialized advanced fusion with CLIP: {clip_model_name}, Sentence: {sentence_model_name}")
+        logger.info(
+            f"Initialized advanced fusion with CLIP: {clip_model_name}, Sentence: {sentence_model_name}"
+        )
         if self.use_neural_fusion:
             logger.info("Neural fusion modules enabled")
 
@@ -142,14 +166,16 @@ class AdvancedEmbeddingFusion:
     def pad_to_target_dim(self, embedding: np.ndarray) -> np.ndarray:
         """Pad or truncate embedding to target dimension."""
         if embedding.shape[0] >= self.target_dim:
-            return embedding[:self.target_dim]
-        return np.pad(embedding, (0, self.target_dim - embedding.shape[0]), mode="constant")
+            return embedding[: self.target_dim]
+        return np.pad(
+            embedding, (0, self.target_dim - embedding.shape[0]), mode="constant"
+        )
 
     def fuse_embeddings(
         self,
         embeddings: List[np.ndarray],
         weights: Optional[List[float]] = None,
-        fusion_method: str = "weighted_average"
+        fusion_method: str = "weighted_average",
     ) -> np.ndarray:
         """
         Fuse multiple embeddings using specified method.
@@ -202,7 +228,9 @@ class AdvancedEmbeddingFusion:
         else:
             raise ValueError(f"Unsupported fusion method: {fusion_method}")
 
-    def _attention_fusion(self, embeddings: List[np.ndarray], base_weights: List[float]) -> np.ndarray:
+    def _attention_fusion(
+        self, embeddings: List[np.ndarray], base_weights: List[float]
+    ) -> np.ndarray:
         """Apply attention-based fusion."""
         # Simple attention mechanism
         scores = []
@@ -235,9 +263,9 @@ class AdvancedEmbeddingFusion:
             tensor = torch.from_numpy(emb).float().unsqueeze(0).to(self.device)
 
             if i == 0:  # CLIP embedding
-                projected = self.projection_layers['clip_proj'](tensor)
+                projected = self.projection_layers["clip_proj"](tensor)
             else:  # Sentence embedding
-                projected = self.projection_layers['sentence_proj'](tensor)
+                projected = self.projection_layers["sentence_proj"](tensor)
 
             tensors.append(projected)
 
@@ -261,9 +289,9 @@ class AdvancedEmbeddingFusion:
             tensor = torch.from_numpy(emb).float().to(self.device)
 
             if i == 0:  # CLIP embedding
-                projected = self.projection_layers['clip_proj'](tensor)
+                projected = self.projection_layers["clip_proj"](tensor)
             else:  # Sentence embedding
-                projected = self.projection_layers['sentence_proj'](tensor)
+                projected = self.projection_layers["sentence_proj"](tensor)
 
             tensors.append(projected)
 
@@ -283,11 +311,15 @@ class AdvancedEmbeddingFusion:
             return embeddings[0]
 
         # Convert to tensors and project
-        clip_tensor = torch.from_numpy(embeddings[0]).float().unsqueeze(0).to(self.device)
-        sentence_tensor = torch.from_numpy(embeddings[1]).float().unsqueeze(0).to(self.device)
+        clip_tensor = (
+            torch.from_numpy(embeddings[0]).float().unsqueeze(0).to(self.device)
+        )
+        sentence_tensor = (
+            torch.from_numpy(embeddings[1]).float().unsqueeze(0).to(self.device)
+        )
 
-        clip_proj = self.projection_layers['clip_proj'](clip_tensor)
-        sentence_proj = self.projection_layers['sentence_proj'](sentence_tensor)
+        clip_proj = self.projection_layers["clip_proj"](clip_tensor)
+        sentence_proj = self.projection_layers["sentence_proj"](sentence_tensor)
 
         # Bidirectional attention
         clip_attended = self.cross_attention(clip_proj, sentence_proj, sentence_proj)
@@ -298,7 +330,9 @@ class AdvancedEmbeddingFusion:
 
         return self.normalize(fused.squeeze(0).cpu().numpy())
 
-    def get_hybrid_text_embedding(self, text: str, fusion_weights: Optional[List[float]] = None) -> np.ndarray:
+    def get_hybrid_text_embedding(
+        self, text: str, fusion_weights: Optional[List[float]] = None
+    ) -> np.ndarray:
         """
         Generate hybrid text embedding using both CLIP and SentenceTransformer.
 
@@ -326,7 +360,7 @@ class AdvancedEmbeddingFusion:
             fused_emb = self.fuse_embeddings(
                 [clip_emb, st_emb],
                 weights=fusion_weights,
-                fusion_method="weighted_average"
+                fusion_method="weighted_average",
             )
 
             return fused_emb
@@ -359,7 +393,7 @@ class AdvancedEmbeddingFusion:
         image_input=None,
         text_weight: float = 0.5,
         image_weight: float = 0.5,
-        fusion_method: str = "weighted_average"
+        fusion_method: str = "weighted_average",
     ) -> np.ndarray:
         """
         Generate multimodal embedding from text and/or image.
@@ -399,7 +433,7 @@ class AdvancedEmbeddingFusion:
         self,
         texts: List[str],
         batch_size: int = 32,
-        fusion_weights: Optional[List[float]] = None
+        fusion_weights: Optional[List[float]] = None,
     ) -> np.ndarray:
         """
         Generate hybrid text embeddings for multiple texts in batches.
@@ -415,7 +449,7 @@ class AdvancedEmbeddingFusion:
         embeddings = []
 
         for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
+            batch_texts = texts[i : i + batch_size]
             batch_embeddings = []
 
             for text in batch_texts:
@@ -431,7 +465,7 @@ class AdvancedEmbeddingFusion:
         product_texts: List[str],
         product_images: Optional[List[str]] = None,
         text_weight: float = 0.7,
-        image_weight: float = 0.3
+        image_weight: float = 0.3,
     ) -> np.ndarray:
         """
         Create embeddings for products using both text and image data.
@@ -448,14 +482,18 @@ class AdvancedEmbeddingFusion:
         embeddings = []
 
         for i, text in enumerate(product_texts):
-            image_url = product_images[i] if product_images and i < len(product_images) else None
+            image_url = (
+                product_images[i]
+                if product_images and i < len(product_images)
+                else None
+            )
 
             try:
                 emb = self.get_multimodal_embedding(
                     text=text,
                     image_input=image_url,
                     text_weight=text_weight,
-                    image_weight=image_weight
+                    image_weight=image_weight,
                 )
                 embeddings.append(emb)
 
@@ -467,7 +505,9 @@ class AdvancedEmbeddingFusion:
 
         return np.vstack(embeddings)
 
-    def get_embedding_similarity(self, emb1: np.ndarray, emb2: np.ndarray, metric: str = "cosine") -> float:
+    def get_embedding_similarity(
+        self, emb1: np.ndarray, emb2: np.ndarray, metric: str = "cosine"
+    ) -> float:
         """
         Calculate similarity between two embeddings.
 
@@ -513,15 +553,16 @@ class AdvancedEmbeddingFusion:
                 "mean": float(np.mean(norms)),
                 "std": float(np.std(norms)),
                 "min": float(np.min(norms)),
-                "max": float(np.max(norms))
+                "max": float(np.max(norms)),
             },
             "similarity_stats": {
                 "mean": float(np.mean(off_diagonal_sims)),
                 "std": float(np.std(off_diagonal_sims)),
                 "min": float(np.min(off_diagonal_sims)),
-                "max": float(np.max(off_diagonal_sims))
+                "max": float(np.max(off_diagonal_sims)),
             },
-            "diversity_score": 1.0 - float(np.mean(off_diagonal_sims))  # Higher is more diverse
+            "diversity_score": 1.0
+            - float(np.mean(off_diagonal_sims)),  # Higher is more diverse
         }
 
     def save_fusion_config(self, config_path: str) -> None:
@@ -530,11 +571,12 @@ class AdvancedEmbeddingFusion:
             "clip_model": self.clip_service.model_name,
             "text_model": self.text_model._modules["0"].auto_model.name_or_path,
             "target_dim": self.target_dim,
-            "device": self.device
+            "device": self.device,
         }
 
         import json
-        with open(config_path, 'w') as f:
+
+        with open(config_path, "w") as f:
             json.dump(config, f, indent=2)
 
         logger.info(f"Fusion configuration saved to {config_path}")
@@ -544,7 +586,7 @@ class AdvancedEmbeddingFusion:
         training_data: List[Tuple[str, str, float]],
         epochs: int = 10,
         learning_rate: float = 1e-4,
-        batch_size: int = 32
+        batch_size: int = 32,
     ) -> None:
         """
         Train neural fusion modules on similarity data.
@@ -564,19 +606,23 @@ class AdvancedEmbeddingFusion:
         self.projection_layers.train()
 
         # Initialize optimizer
-        params = list(self.cross_attention.parameters()) + \
-                list(self.dynamic_weighting.parameters()) + \
-                list(self.projection_layers.parameters())
+        params = (
+            list(self.cross_attention.parameters())
+            + list(self.dynamic_weighting.parameters())
+            + list(self.projection_layers.parameters())
+        )
         optimizer = torch.optim.Adam(params, lr=learning_rate)
 
-        logger.info(f"Training neural fusion on {len(training_data)} examples for {epochs} epochs")
+        logger.info(
+            f"Training neural fusion on {len(training_data)} examples for {epochs} epochs"
+        )
 
         for epoch in range(epochs):
             total_loss = 0.0
             num_batches = 0
 
             for i in range(0, len(training_data), batch_size):
-                batch = training_data[i:i + batch_size]
+                batch = training_data[i : i + batch_size]
                 batch_loss = 0.0
 
                 for text1, text2, target_sim in batch:
@@ -618,28 +664,35 @@ class AdvancedEmbeddingFusion:
     def save_model(self, save_path: str) -> None:
         """Save the complete fusion model."""
         import os
+
         os.makedirs(save_path, exist_ok=True)
 
         # Save configuration
         config = {
             "clip_model": self.clip_service.model_name,
-            "sentence_model": getattr(self.sentence_model, '_model_name', 'all-MiniLM-L6-v2'),
+            "sentence_model": getattr(
+                self.sentence_model, "_model_name", "all-MiniLM-L6-v2"
+            ),
             "target_dim": self.target_dim,
             "device": self.device,
-            "use_neural_fusion": self.use_neural_fusion
+            "use_neural_fusion": self.use_neural_fusion,
         }
 
         import json
-        with open(os.path.join(save_path, "fusion_config.json"), 'w') as f:
+
+        with open(os.path.join(save_path, "fusion_config.json"), "w") as f:
             json.dump(config, f, indent=2)
 
         # Save neural modules if enabled
         if self.use_neural_fusion:
-            torch.save({
-                'cross_attention': self.cross_attention.state_dict(),
-                'dynamic_weighting': self.dynamic_weighting.state_dict(),
-                'projection_layers': self.projection_layers.state_dict()
-            }, os.path.join(save_path, "neural_modules.pt"))
+            torch.save(
+                {
+                    "cross_attention": self.cross_attention.state_dict(),
+                    "dynamic_weighting": self.dynamic_weighting.state_dict(),
+                    "projection_layers": self.projection_layers.state_dict(),
+                },
+                os.path.join(save_path, "neural_modules.pt"),
+            )
 
         logger.info(f"Fusion model saved to {save_path}")
 
@@ -650,16 +703,16 @@ class AdvancedEmbeddingFusion:
 
         # Load configuration
         config_path = os.path.join(load_path, "fusion_config.json")
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = json.load(f)
 
         # Load neural modules if they exist
         neural_path = os.path.join(load_path, "neural_modules.pt")
         if os.path.exists(neural_path) and self.use_neural_fusion:
             state_dict = torch.load(neural_path, map_location=self.device)
-            self.cross_attention.load_state_dict(state_dict['cross_attention'])
-            self.dynamic_weighting.load_state_dict(state_dict['dynamic_weighting'])
-            self.projection_layers.load_state_dict(state_dict['projection_layers'])
+            self.cross_attention.load_state_dict(state_dict["cross_attention"])
+            self.dynamic_weighting.load_state_dict(state_dict["dynamic_weighting"])
+            self.projection_layers.load_state_dict(state_dict["projection_layers"])
 
             # Set to eval mode
             self.cross_attention.eval()
@@ -674,15 +727,13 @@ class AdvancedEmbeddingFusion:
             "weighted_average",
             "concatenate",
             "max_pooling",
-            "attention_weighted"
+            "attention_weighted",
         ]
 
         if self.use_neural_fusion:
-            methods.extend([
-                "neural_attention",
-                "dynamic_weighted",
-                "cross_modal_attention"
-            ])
+            methods.extend(
+                ["neural_attention", "dynamic_weighted", "cross_modal_attention"]
+            )
 
         return methods
 
@@ -691,7 +742,7 @@ class AdvancedEmbeddingFusion:
         test_queries: List[str],
         test_documents: List[str],
         relevance_scores: List[float],
-        fusion_method: str = "cross_modal_attention"
+        fusion_method: str = "cross_modal_attention",
     ) -> Dict[str, float]:
         """
         Evaluate fusion quality on test data.
@@ -705,7 +756,9 @@ class AdvancedEmbeddingFusion:
         Returns:
             Dictionary with evaluation metrics
         """
-        if len(test_queries) != len(test_documents) or len(test_queries) != len(relevance_scores):
+        if len(test_queries) != len(test_documents) or len(test_queries) != len(
+            relevance_scores
+        ):
             raise ValueError("All input lists must have the same length")
 
         predicted_scores = []
@@ -736,20 +789,23 @@ class AdvancedEmbeddingFusion:
             "correlation": float(correlation),
             "mse": float(mse),
             "mae": float(mae),
-            "fusion_method": fusion_method
+            "fusion_method": fusion_method,
         }
 
     @classmethod
-    def load_fusion_config(cls, config_path: str) -> 'AdvancedEmbeddingFusion':
+    def load_fusion_config(cls, config_path: str) -> "AdvancedEmbeddingFusion":
         """Load fusion configuration from file."""
         import json
-        with open(config_path, 'r') as f:
+
+        with open(config_path, "r") as f:
             config = json.load(f)
 
         return cls(
             clip_model_name=config["clip_model"],
-            sentence_model_name=config.get("sentence_model", config.get("text_model", "all-MiniLM-L6-v2")),
+            sentence_model_name=config.get(
+                "sentence_model", config.get("text_model", "all-MiniLM-L6-v2")
+            ),
             device=config["device"],
             target_dim=config["target_dim"],
-            use_neural_fusion=config.get("use_neural_fusion", True)
+            use_neural_fusion=config.get("use_neural_fusion", True),
         )

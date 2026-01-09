@@ -1,6 +1,7 @@
 """
 Data processing module for e-commerce product data.
 """
+
 import re
 from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
@@ -23,7 +24,7 @@ class DataProcessor:
             "Technical Details": "Not available",
             "Shipping Weight": "Not available",
             "Product Dimensions": "Not available",
-            "Variants": "Not available"
+            "Variants": "Not available",
         }
 
     def load_data(self, csv_path: str) -> pd.DataFrame:
@@ -62,13 +63,13 @@ class DataProcessor:
         """
         parts = [f"Product Name: {row['Product Name']}"]
 
-        if row.get('Category', '') != "Not available":
+        if row.get("Category", "") != "Not available":
             parts.append(f"Category: {row['Category']}")
-        if row.get('Selling Price', '') != "Not available":
+        if row.get("Selling Price", "") != "Not available":
             parts.append(f"Price: {row['Selling Price']}")
-        if row.get('Model Number', '') != "Not available":
+        if row.get("Model Number", "") != "Not available":
             parts.append(f"Model: {row['Model Number']}")
-        if row.get('About Product', '') != "Not available":
+        if row.get("About Product", "") != "Not available":
             parts.append(f"About: {row['About Product']}")
 
         return " | ".join(parts)
@@ -78,7 +79,7 @@ class DataProcessor:
         logger.info("Creating metadata list")
 
         # Add combined text column
-        df['combined_text'] = df.apply(self.build_text_for_embedding, axis=1)
+        df["combined_text"] = df.apply(self.build_text_for_embedding, axis=1)
 
         metadata_list = []
         for _, row in df.iterrows():
@@ -89,10 +90,12 @@ class DataProcessor:
                     variants_products_link=row.get("Variants", "Not available"),
                     shipping_weight=row.get("Shipping Weight", "Not available"),
                     product_dimensions=row.get("Product Dimensions", "Not available"),
-                    product_specification=row.get("Product Specification", "Not available"),
+                    product_specification=row.get(
+                        "Product Specification", "Not available"
+                    ),
                     technical_details=row.get("Technical Details", "Not available"),
                     is_amazon_seller=row["Is Amazon Seller"],
-                    combined_text=row["combined_text"]
+                    combined_text=row["combined_text"],
                 )
                 metadata_list.append(metadata)
             except Exception as e:
@@ -102,7 +105,9 @@ class DataProcessor:
         logger.info(f"Created {len(metadata_list)} metadata entries")
         return metadata_list
 
-    def process_full_pipeline(self, csv_path: str) -> Tuple[pd.DataFrame, List[ProductMetadata]]:
+    def process_full_pipeline(
+        self, csv_path: str
+    ) -> Tuple[pd.DataFrame, List[ProductMetadata]]:
         """Run the complete data processing pipeline."""
         df = self.load_data(csv_path)
         df_cleaned = self.clean_data(df)
@@ -126,7 +131,9 @@ class TextProcessor:
         return len(query_tokens & item_tokens)
 
     @staticmethod
-    def rerank_by_text_similarity(query: str, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def rerank_by_text_similarity(
+        query: str, items: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Rerank items based on text similarity with query."""
         query_tokens = TextProcessor.tokenize(query)
         scored = []

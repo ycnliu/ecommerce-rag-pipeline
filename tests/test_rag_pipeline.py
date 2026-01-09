@@ -1,6 +1,7 @@
 """
 Tests for RAG pipeline functionality.
 """
+
 import pytest
 import numpy as np
 from unittest.mock import Mock, patch
@@ -15,12 +16,14 @@ from src.utils.exceptions import RAGError
 class TestRAGPipeline:
     """Test cases for RAGPipeline class."""
 
-    def test_initialization(self, mock_embedding_service, mock_vector_db, mock_llm_client):
+    def test_initialization(
+        self, mock_embedding_service, mock_vector_db, mock_llm_client
+    ):
         """Test RAG pipeline initialization."""
         pipeline = RAGPipeline(
             embedding_service=mock_embedding_service,
             vector_db=mock_vector_db,
-            llm_client=mock_llm_client
+            llm_client=mock_llm_client,
         )
 
         assert pipeline.embedding_service == mock_embedding_service
@@ -31,14 +34,19 @@ class TestRAGPipeline:
     def test_query_text_only(self, mock_rag_pipeline, sample_product_metadata):
         """Test querying with text only."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:2], [0.1, 0.2])
-        mock_rag_pipeline.llm_client.generate_response.return_value = "Generated response"
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:2],
+            [0.1, 0.2],
+        )
+        mock_rag_pipeline.llm_client.generate_response.return_value = (
+            "Generated response"
+        )
 
         response = mock_rag_pipeline.query(
-            text_query="wireless headphones",
-            k=5,
-            generate_response=True
+            text_query="wireless headphones", k=5, generate_response=True
         )
 
         assert response.query == "wireless headphones"
@@ -49,15 +57,20 @@ class TestRAGPipeline:
     def test_query_image_only(self, mock_rag_pipeline, sample_product_metadata):
         """Test querying with image only."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:1], [0.1])
-        mock_rag_pipeline.llm_client.generate_response.return_value = "Generated response"
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:1],
+            [0.1],
+        )
+        mock_rag_pipeline.llm_client.generate_response.return_value = (
+            "Generated response"
+        )
 
         image_data = b"fake_image_data"
         response = mock_rag_pipeline.query(
-            image_query=image_data,
-            k=3,
-            generate_response=True
+            image_query=image_data, k=3, generate_response=True
         )
 
         assert response.query == "Image query"
@@ -67,15 +80,22 @@ class TestRAGPipeline:
     def test_query_multimodal(self, mock_rag_pipeline, sample_product_metadata):
         """Test querying with both text and image."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:3], [0.1, 0.2, 0.3])
-        mock_rag_pipeline.llm_client.generate_response.return_value = "Generated response"
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:3],
+            [0.1, 0.2, 0.3],
+        )
+        mock_rag_pipeline.llm_client.generate_response.return_value = (
+            "Generated response"
+        )
 
         response = mock_rag_pipeline.query(
             text_query="gaming laptop",
             image_query=b"fake_image_data",
             k=5,
-            generate_response=True
+            generate_response=True,
         )
 
         assert response.query == "gaming laptop"
@@ -84,19 +104,22 @@ class TestRAGPipeline:
 
     def test_query_no_input(self, mock_rag_pipeline):
         """Test querying without any input."""
-        with pytest.raises(ValueError, match="At least one of text_query or image_query must be provided"):
+        with pytest.raises(
+            ValueError,
+            match="At least one of text_query or image_query must be provided",
+        ):
             mock_rag_pipeline.query()
 
     def test_query_no_results(self, mock_rag_pipeline):
         """Test querying when no results are found."""
         # Setup mocks to return empty results
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
         mock_rag_pipeline.vector_db.search.return_value = ([], [])
 
         response = mock_rag_pipeline.query(
-            text_query="nonexistent product",
-            k=5,
-            generate_response=True
+            text_query="nonexistent product", k=5, generate_response=True
         )
 
         assert response.query == "nonexistent product"
@@ -106,30 +129,39 @@ class TestRAGPipeline:
     def test_query_with_reranking(self, mock_rag_pipeline, sample_product_metadata):
         """Test querying with reranking enabled."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:2], [0.1, 0.2])
-        mock_rag_pipeline.llm_client.generate_response.return_value = "Generated response"
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:2],
+            [0.1, 0.2],
+        )
+        mock_rag_pipeline.llm_client.generate_response.return_value = (
+            "Generated response"
+        )
 
         response = mock_rag_pipeline.query(
-            text_query="wireless headphones",
-            k=5,
-            rerank=True,
-            generate_response=True
+            text_query="wireless headphones", k=5, rerank=True, generate_response=True
         )
 
         assert response.query == "wireless headphones"
         assert len(response.results) == 2
 
-    def test_query_without_response_generation(self, mock_rag_pipeline, sample_product_metadata):
+    def test_query_without_response_generation(
+        self, mock_rag_pipeline, sample_product_metadata
+    ):
         """Test querying without generating LLM response."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:1], [0.1])
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:1],
+            [0.1],
+        )
 
         response = mock_rag_pipeline.query(
-            text_query="wireless headphones",
-            k=5,
-            generate_response=False
+            text_query="wireless headphones", k=5, generate_response=False
         )
 
         assert response.query == "wireless headphones"
@@ -139,13 +171,20 @@ class TestRAGPipeline:
     def test_batch_query(self, mock_rag_pipeline, sample_product_metadata):
         """Test batch query processing."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:1], [0.1])
-        mock_rag_pipeline.llm_client.generate_response.return_value = "Generated response"
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:1],
+            [0.1],
+        )
+        mock_rag_pipeline.llm_client.generate_response.return_value = (
+            "Generated response"
+        )
 
         queries = [
             QueryRequest(text_query="wireless headphones", k=5),
-            QueryRequest(text_query="gaming laptop", k=3)
+            QueryRequest(text_query="gaming laptop", k=3),
         ]
 
         responses = mock_rag_pipeline.batch_query(queries, generate_responses=True)
@@ -156,8 +195,13 @@ class TestRAGPipeline:
     def test_get_similar_products(self, mock_rag_pipeline, sample_product_metadata):
         """Test finding similar products."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_text_embedding.return_value = np.random.rand(512)
-        mock_rag_pipeline.vector_db.search.return_value = (sample_product_metadata[:2], [0.1, 0.2])
+        mock_rag_pipeline.embedding_service.get_text_embedding.return_value = (
+            np.random.rand(512)
+        )
+        mock_rag_pipeline.vector_db.search.return_value = (
+            sample_product_metadata[:2],
+            [0.1, 0.2],
+        )
 
         product = sample_product_metadata[0]
         similar_products = mock_rag_pipeline.get_similar_products(product, k=5)
@@ -168,12 +212,14 @@ class TestRAGPipeline:
     def test_explain_recommendation(self, mock_rag_pipeline, sample_product_metadata):
         """Test recommendation explanation generation."""
         # Setup mocks
-        mock_rag_pipeline.llm_client.generate_response.return_value = "Explanation of recommendations"
+        mock_rag_pipeline.llm_client.generate_response.return_value = (
+            "Explanation of recommendations"
+        )
 
         explanation = mock_rag_pipeline.explain_recommendation(
             "wireless headphones",
             sample_product_metadata[:2],
-            explanation_style="detailed"
+            explanation_style="detailed",
         )
 
         assert isinstance(explanation, str)
@@ -182,11 +228,15 @@ class TestRAGPipeline:
     def test_get_pipeline_stats(self, mock_rag_pipeline):
         """Test getting pipeline statistics."""
         # Setup mocks
-        mock_rag_pipeline.embedding_service.get_model_info.return_value = {"model_name": "test"}
+        mock_rag_pipeline.embedding_service.get_model_info.return_value = {
+            "model_name": "test"
+        }
         mock_rag_pipeline.vector_db.get_stats.return_value = Mock(
             dict=lambda: {"total_vectors": 100}
         )
-        mock_rag_pipeline.llm_client.get_model_info.return_value = {"model_name": "test_llm"}
+        mock_rag_pipeline.llm_client.get_model_info.return_value = {
+            "model_name": "test_llm"
+        }
 
         stats = mock_rag_pipeline.get_pipeline_stats()
 
@@ -198,7 +248,9 @@ class TestRAGPipeline:
     def test_error_handling(self, mock_rag_pipeline):
         """Test error handling in RAG pipeline."""
         # Setup mock to raise exception
-        mock_rag_pipeline.embedding_service.get_multimodal_embedding.side_effect = Exception("Test error")
+        mock_rag_pipeline.embedding_service.get_multimodal_embedding.side_effect = (
+            Exception("Test error")
+        )
 
         with pytest.raises(RAGError):
             mock_rag_pipeline.query(text_query="test query")
@@ -229,8 +281,7 @@ class TestPromptBuilder:
         builder = PromptBuilder()
 
         context = builder.build_context_from_metadata(
-            sample_product_metadata * 10,  # Many items
-            max_items=2
+            sample_product_metadata * 10, max_items=2  # Many items
         )
 
         # Should only include 2 items
@@ -242,9 +293,7 @@ class TestPromptBuilder:
         builder = PromptBuilder()
 
         prompt = builder.build_rag_prompt(
-            "wireless headphones",
-            sample_product_metadata[:2],
-            include_examples=True
+            "wireless headphones", sample_product_metadata[:2], include_examples=True
         )
 
         assert isinstance(prompt, str)
@@ -256,9 +305,7 @@ class TestPromptBuilder:
         builder = PromptBuilder()
 
         prompt = builder.build_rag_prompt(
-            "wireless headphones",
-            sample_product_metadata[:1],
-            include_examples=False
+            "wireless headphones", sample_product_metadata[:1], include_examples=False
         )
 
         assert isinstance(prompt, str)
@@ -271,7 +318,7 @@ class TestPromptBuilder:
         prompt = builder.build_evaluation_prompt(
             "wireless headphones",
             sample_product_metadata[:1],
-            ground_truth="Test ground truth"
+            ground_truth="Test ground truth",
         )
 
         assert isinstance(prompt, str)
@@ -282,16 +329,11 @@ class TestPromptBuilder:
         """Test building comparison prompt."""
         builder = PromptBuilder()
 
-        product_groups = [
-            sample_product_metadata[:1],
-            sample_product_metadata[1:2]
-        ]
+        product_groups = [sample_product_metadata[:1], sample_product_metadata[1:2]]
         group_labels = ["Group A", "Group B"]
 
         prompt = builder.build_comparison_prompt(
-            "compare products",
-            product_groups,
-            group_labels
+            "compare products", product_groups, group_labels
         )
 
         assert isinstance(prompt, str)
@@ -345,22 +387,24 @@ class TestRAGEvaluator:
         assert isinstance(score, float)
         assert 0.0 <= score <= 1.0
 
-    def test_evaluate_response_quality(self, mock_rag_pipeline, test_queries, test_reference_responses):
+    def test_evaluate_response_quality(
+        self, mock_rag_pipeline, test_queries, test_reference_responses
+    ):
         """Test response quality evaluation."""
         # Setup mock to return query responses
         from src.data.models import QueryResponse
+
         mock_rag_pipeline.query.return_value = QueryResponse(
             query="test",
             results=[],
             generated_response="test response",
-            processing_time=0.1
+            processing_time=0.1,
         )
 
         evaluator = RAGEvaluator(mock_rag_pipeline)
 
         results = evaluator.evaluate_response_quality(
-            test_queries[:2],
-            test_reference_responses[:2]
+            test_queries[:2], test_reference_responses[:2]
         )
 
         assert "bleu_mean" in results
@@ -372,24 +416,26 @@ class TestRAGEvaluator:
         """Test latency evaluation."""
         # Setup mock to return query responses
         from src.data.models import QueryResponse
+
         mock_rag_pipeline.query.return_value = QueryResponse(
             query="test",
             results=[],
             generated_response="test response",
-            processing_time=0.05  # 50ms
+            processing_time=0.05,  # 50ms
         )
 
         evaluator = RAGEvaluator(mock_rag_pipeline)
 
-        results = evaluator.evaluate_latency(
-            test_queries[:2],
-            num_iterations=3,
-            k=5
-        )
+        results = evaluator.evaluate_latency(test_queries[:2], num_iterations=3, k=5)
 
         expected_keys = [
-            "mean_latency_ms", "median_latency_ms", "p95_latency_ms",
-            "p99_latency_ms", "min_latency_ms", "max_latency_ms", "std_latency_ms"
+            "mean_latency_ms",
+            "median_latency_ms",
+            "p95_latency_ms",
+            "p99_latency_ms",
+            "min_latency_ms",
+            "max_latency_ms",
+            "std_latency_ms",
         ]
 
         for key in expected_keys:

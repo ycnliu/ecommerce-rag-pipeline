@@ -8,13 +8,14 @@ from huggingface_hub import InferenceClient
 from loguru import logger
 import time
 
+
 def test_hf_direct():
     """Test Hugging Face Inference API directly."""
 
     # Load environment variables
     load_dotenv()
 
-    hf_token = os.getenv('HF_TOKEN')
+    hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
         logger.error("No HF_TOKEN found in environment")
         return
@@ -35,10 +36,7 @@ def test_hf_direct():
 
         start_time = time.time()
         response = client.text_generation(
-            test_prompt,
-            max_new_tokens=100,
-            temperature=0.7,
-            return_full_text=False
+            test_prompt, max_new_tokens=100, temperature=0.7, return_full_text=False
         )
         generation_time = time.time() - start_time
 
@@ -54,9 +52,7 @@ def test_hf_direct():
 
         start_time = time.time()
         response2 = client2.text_generation(
-            simple_prompt,
-            max_new_tokens=50,
-            temperature=0.3
+            simple_prompt, max_new_tokens=50, temperature=0.3
         )
         generation_time2 = time.time() - start_time
 
@@ -73,6 +69,7 @@ def test_hf_direct():
         logger.info("3. Fallback responses (always available)")
 
     logger.info("\n🎉 Hugging Face testing completed!")
+
 
 if __name__ == "__main__":
     test_hf_direct()

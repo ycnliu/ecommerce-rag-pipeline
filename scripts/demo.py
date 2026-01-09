@@ -38,7 +38,7 @@ def create_sample_data():
             "Image": "https://example.com/sony-wh1000xm4.jpg",
             "Variants": "Black, Silver, Blue",
             "Product Url": "https://example.com/products/sony-wh1000xm4",
-            "Is Amazon Seller": "Y"
+            "Is Amazon Seller": "Y",
         },
         {
             "Uniq Id": "2",
@@ -54,7 +54,7 @@ def create_sample_data():
             "Image": "https://example.com/macbook-pro-16.jpg",
             "Variants": "Silver, Space Gray",
             "Product Url": "https://example.com/products/macbook-pro-16",
-            "Is Amazon Seller": "N"
+            "Is Amazon Seller": "N",
         },
         {
             "Uniq Id": "3",
@@ -70,7 +70,7 @@ def create_sample_data():
             "Image": "https://example.com/logitech-mx-master-3.jpg",
             "Variants": "Graphite, Mid Grey, Rose",
             "Product Url": "https://example.com/products/logitech-mx-master-3",
-            "Is Amazon Seller": "Y"
+            "Is Amazon Seller": "Y",
         },
         {
             "Uniq Id": "4",
@@ -86,7 +86,7 @@ def create_sample_data():
             "Image": "https://example.com/nintendo-switch.jpg",
             "Variants": "Neon Blue/Red, Gray",
             "Product Url": "https://example.com/products/nintendo-switch",
-            "Is Amazon Seller": "Y"
+            "Is Amazon Seller": "Y",
         },
         {
             "Uniq Id": "5",
@@ -102,8 +102,8 @@ def create_sample_data():
             "Image": "https://example.com/samsung-65-4k-tv.jpg",
             "Variants": "Not available",
             "Product Url": "https://example.com/products/samsung-65-4k-tv",
-            "Is Amazon Seller": "Y"
-        }
+            "Is Amazon Seller": "Y",
+        },
     ]
 
     return sample_data
@@ -121,6 +121,7 @@ def setup_demo_environment():
     sample_data = create_sample_data()
 
     import pandas as pd
+
     df = pd.DataFrame(sample_data)
     csv_path = demo_dir / "sample_products.csv"
     df.to_csv(csv_path, index=False)
@@ -143,7 +144,7 @@ def run_demo():
             faiss_index_type="flat",
             llm_provider="huggingface",
             llm_model_name="microsoft/DialoGPT-medium",  # Smaller model for demo
-            llm_api_token="demo_token"  # Will use mock for demo
+            llm_api_token="demo_token",  # Will use mock for demo
         )
 
         setup_logging(config)
@@ -160,8 +161,7 @@ def run_demo():
         # Step 2: Initialize Embedding Service
         print("\n🧠 Step 2: Initializing embedding service...")
         embedding_service = CLIPEmbeddingService(
-            model_name=config.clip_model_name,
-            device="cpu"  # Force CPU for demo
+            model_name=config.clip_model_name, device="cpu"  # Force CPU for demo
         )
         embedding_service.load_model()
         print("✅ Embedding service loaded")
@@ -174,10 +174,7 @@ def run_demo():
 
         # Step 4: Build Vector Database
         print("\n🗄️  Step 4: Building vector database...")
-        vector_db = FAISSVectorDB(
-            dimension=embeddings.shape[1],
-            index_type="flat"
-        )
+        vector_db = FAISSVectorDB(dimension=embeddings.shape[1], index_type="flat")
         vector_db.add_vectors(embeddings, metadata_list)
         print(f"✅ Vector database built with {vector_db.index.ntotal} vectors")
 
@@ -199,7 +196,7 @@ def run_demo():
         pipeline = RAGPipeline(
             embedding_service=embedding_service,
             vector_db=vector_db,
-            llm_client=llm_client
+            llm_client=llm_client,
         )
         print("✅ RAG pipeline ready")
 
@@ -210,18 +207,14 @@ def run_demo():
             "gaming console for Nintendo games",
             "laptop for professional work",
             "4K TV for home entertainment",
-            "wireless mouse for productivity"
+            "wireless mouse for productivity",
         ]
 
         for i, query in enumerate(demo_queries, 1):
             print(f"\n--- Demo Query {i}: {query} ---")
 
             start_time = time.time()
-            response = pipeline.query(
-                text_query=query,
-                k=3,
-                generate_response=True
-            )
+            response = pipeline.query(text_query=query, k=3, generate_response=True)
             processing_time = time.time() - start_time
 
             print(f"🤖 AI Response: {response.generated_response}")

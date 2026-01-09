@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures for the e-commerce RAG pipeline.
 """
+
 import os
 import tempfile
 import pytest
@@ -29,7 +30,7 @@ def test_config():
             faiss_metadata_path=os.path.join(temp_dir, "test_metadata.pkl"),
             embeddings_cache_path=os.path.join(temp_dir, "test_embeddings.npy"),
             log_file_path=os.path.join(temp_dir, "test.log"),
-            llm_api_token="test_token"
+            llm_api_token="test_token",
         )
         yield config
 
@@ -44,7 +45,7 @@ def mock_embedding_service():
     service.get_model_info.return_value = {
         "model_name": "test_model",
         "model_loaded": True,
-        "embedding_dim": 512
+        "embedding_dim": 512,
     }
     return service
 
@@ -55,9 +56,7 @@ def mock_vector_db():
     db = Mock(spec=FAISSVectorDB)
     db.search.return_value = ([], [])
     db.get_stats.return_value = Mock(
-        total_vectors=100,
-        dimension=512,
-        index_type="flat"
+        total_vectors=100, dimension=512, index_type="flat"
     )
     return db
 
@@ -67,10 +66,7 @@ def mock_llm_client():
     """Mock LLM client for testing."""
     client = Mock(spec=BaseLLMClient)
     client.generate_response.return_value = "Test response"
-    client.get_model_info.return_value = {
-        "model_name": "test_llm",
-        "provider": "test"
-    }
+    client.get_model_info.return_value = {"model_name": "test_llm", "provider": "test"}
     return client
 
 
@@ -87,7 +83,7 @@ def sample_product_metadata():
             product_specification="Test specification",
             technical_details="Test technical details",
             is_amazon_seller="Y",
-            combined_text="Product Name: Test Product 1 | Category: Electronics | Price: $99.99"
+            combined_text="Product Name: Test Product 1 | Category: Electronics | Price: $99.99",
         ),
         ProductMetadata(
             image_url="https://example.com/image2.jpg",
@@ -98,15 +94,15 @@ def sample_product_metadata():
             product_specification="Test specification 2",
             technical_details="Test technical details 2",
             is_amazon_seller="N",
-            combined_text="Product Name: Test Product 2 | Category: Electronics | Price: $149.99"
-        )
+            combined_text="Product Name: Test Product 2 | Category: Electronics | Price: $149.99",
+        ),
     ]
 
 
 @pytest.fixture
 def sample_embeddings():
     """Sample embeddings for testing."""
-    return np.random.rand(10, 512).astype('float32')
+    return np.random.rand(10, 512).astype("float32")
 
 
 @pytest.fixture
@@ -115,7 +111,7 @@ def mock_rag_pipeline(mock_embedding_service, mock_vector_db, mock_llm_client):
     return RAGPipeline(
         embedding_service=mock_embedding_service,
         vector_db=mock_vector_db,
-        llm_client=mock_llm_client
+        llm_client=mock_llm_client,
     )
 
 
@@ -130,7 +126,7 @@ def sample_csv_data():
 @pytest.fixture
 def temp_csv_file(sample_csv_data):
     """Temporary CSV file for testing."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
         f.write(sample_csv_data)
         temp_path = f.name
 
@@ -174,7 +170,7 @@ def test_queries():
         "What are good wireless headphones?",
         "Show me gaming laptops under $1000",
         "I need a smartphone with good camera",
-        "What kitchen appliances do you recommend?"
+        "What kitchen appliances do you recommend?",
     ]
 
 
@@ -185,7 +181,7 @@ def test_reference_responses():
         "Based on the available products, I recommend these wireless headphones...",
         "Here are some gaming laptops under $1000 that offer good performance...",
         "For smartphones with good cameras, consider these options...",
-        "I recommend these kitchen appliances for your needs..."
+        "I recommend these kitchen appliances for your needs...",
     ]
 
 
@@ -193,7 +189,7 @@ def test_reference_responses():
 @pytest.fixture
 def performance_embeddings():
     """Large set of embeddings for performance testing."""
-    return np.random.rand(1000, 512).astype('float32')
+    return np.random.rand(1000, 512).astype("float32")
 
 
 @pytest.fixture
@@ -211,7 +207,7 @@ def performance_metadata(performance_embeddings):
                 product_specification=f"Specification for product {i}",
                 technical_details=f"Technical details for product {i}",
                 is_amazon_seller="Y" if i % 2 == 0 else "N",
-                combined_text=f"Product Name: Test Product {i} | Category: Electronics | Price: ${(i % 500) + 50}.99"
+                combined_text=f"Product Name: Test Product {i} | Category: Electronics | Price: ${(i % 500) + 50}.99",
             )
         )
     return metadata_list

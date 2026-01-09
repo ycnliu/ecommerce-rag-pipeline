@@ -1,6 +1,7 @@
 """
 Field extraction patterns for structured queries in e-commerce.
 """
+
 import re
 from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from loguru import logger
 @dataclass
 class FieldPattern:
     """Field extraction pattern definition."""
+
     keywords: Set[str]
     pattern: re.Pattern
     field_name: str
@@ -33,144 +35,127 @@ class FieldExtractor:
                 keywords={"price", "cost", "pricing", "amount", "dollar", "usd"},
                 pattern=re.compile(
                     r"(?:Price|Cost|Selling\s+Price):\s*\$?([0-9]+(?:\.[0-9]+)?)",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="price",
                 description="Product price in USD",
-                priority=1
+                priority=1,
             ),
-
             # Dimensions patterns
             FieldPattern(
-                keywords={"dimension", "dimensions", "size", "width", "height", "length"},
+                keywords={
+                    "dimension",
+                    "dimensions",
+                    "size",
+                    "width",
+                    "height",
+                    "length",
+                },
                 pattern=re.compile(
                     r"(?:Product\s*Dimensions?|Size):\s*([0-9.]+\s*x\s*[0-9.]+(?:\s*x\s*[0-9.]+)?(?:\s*(?:inches?|in|cm|mm))?)",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="dimensions",
                 description="Product dimensions",
-                priority=1
+                priority=1,
             ),
-
             # Weight patterns
             FieldPattern(
                 keywords={"weight", "heavy", "pounds", "lbs", "kg", "ounces", "oz"},
                 pattern=re.compile(
                     r"(?:Item\s*Weight|Shipping\s*Weight):\s*([0-9.]+\s*(?:pounds?|lbs?|kg|ounces?|oz))",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="weight",
                 description="Product weight",
-                priority=1
+                priority=1,
             ),
-
             # ASIN patterns
             FieldPattern(
                 keywords={"asin", "identifier", "id"},
-                pattern=re.compile(
-                    r"ASIN:\s*([A-Za-z0-9]+)",
-                    re.IGNORECASE
-                ),
+                pattern=re.compile(r"ASIN:\s*([A-Za-z0-9]+)", re.IGNORECASE),
                 field_name="asin",
                 description="Amazon ASIN identifier",
-                priority=2
+                priority=2,
             ),
-
             # Model number patterns
             FieldPattern(
                 keywords={"model", "model number", "part number", "sku"},
                 pattern=re.compile(
                     r"(?:Item\s*Model\s*Number|Model):\s*([A-Za-z0-9\-_]+)",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="model",
                 description="Product model number",
-                priority=2
+                priority=2,
             ),
-
             # Age recommendation patterns
             FieldPattern(
                 keywords={"age", "recommended age", "years", "children", "kids"},
                 pattern=re.compile(
                     r"(?:Manufacturer\s*Recommended\s*Age|Ages?):\s*([0-9\-\+\s]*(?:years?|months?)[^|]*)",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="age",
                 description="Recommended age range",
-                priority=2
+                priority=2,
             ),
-
             # Shipping info patterns
             FieldPattern(
                 keywords={"shipping", "delivery", "international", "domestic"},
                 pattern=re.compile(
                     r"(?:Domestic\s*Shipping|International\s*Shipping):\s*([^|]+)",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="shipping",
                 description="Shipping information",
-                priority=3
+                priority=3,
             ),
-
             # Brand patterns
             FieldPattern(
                 keywords={"brand", "manufacturer", "company", "made by"},
-                pattern=re.compile(
-                    r"(?:Brand|Manufacturer):\s*([^|]+)",
-                    re.IGNORECASE
-                ),
+                pattern=re.compile(r"(?:Brand|Manufacturer):\s*([^|]+)", re.IGNORECASE),
                 field_name="brand",
                 description="Product brand",
-                priority=2
+                priority=2,
             ),
-
             # Color patterns
             FieldPattern(
                 keywords={"color", "colour", "colors", "colours"},
-                pattern=re.compile(
-                    r"(?:Color|Colour):\s*([^|]+)",
-                    re.IGNORECASE
-                ),
+                pattern=re.compile(r"(?:Color|Colour):\s*([^|]+)", re.IGNORECASE),
                 field_name="color",
                 description="Product color",
-                priority=3
+                priority=3,
             ),
-
             # Battery patterns
             FieldPattern(
                 keywords={"battery", "batteries", "power", "aa", "aaa"},
-                pattern=re.compile(
-                    r"(?:Batteries?|Power):\s*([^|]+)",
-                    re.IGNORECASE
-                ),
+                pattern=re.compile(r"(?:Batteries?|Power):\s*([^|]+)", re.IGNORECASE),
                 field_name="battery",
                 description="Battery requirements",
-                priority=3
+                priority=3,
             ),
-
             # Material patterns
             FieldPattern(
                 keywords={"material", "made of", "fabric", "plastic", "wood", "metal"},
                 pattern=re.compile(
-                    r"(?:Material|Made\s+of|Fabric):\s*([^|]+)",
-                    re.IGNORECASE
+                    r"(?:Material|Made\s+of|Fabric):\s*([^|]+)", re.IGNORECASE
                 ),
                 field_name="material",
                 description="Product material",
-                priority=3
+                priority=3,
             ),
-
             # Rating patterns
             FieldPattern(
                 keywords={"rating", "stars", "review", "score"},
                 pattern=re.compile(
                     r"(?:Rating|Score):\s*([0-9.]+(?:\s*out\s*of\s*[0-9]+)?(?:\s*stars?)?)",
-                    re.IGNORECASE
+                    re.IGNORECASE,
                 ),
                 field_name="rating",
                 description="Product rating",
-                priority=3
-            )
+                priority=3,
+            ),
         ]
 
         return patterns
@@ -241,9 +226,19 @@ class FieldExtractor:
 
         # Check for direct field requests
         field_indicators = [
-            "what is the", "what's the", "tell me the", "show me the",
-            "how much", "what size", "what color", "what brand",
-            "price", "cost", "dimensions", "weight", "model"
+            "what is the",
+            "what's the",
+            "tell me the",
+            "show me the",
+            "how much",
+            "what size",
+            "what color",
+            "what brand",
+            "price",
+            "cost",
+            "dimensions",
+            "weight",
+            "model",
         ]
 
         return any(indicator in query_lower for indicator in field_indicators)
@@ -263,12 +258,14 @@ class FieldExtractor:
 
         for pattern in self.patterns:
             if pattern.field_name in extracted_fields:
-                suggestions.append({
-                    "field": pattern.field_name,
-                    "description": pattern.description,
-                    "value": extracted_fields[pattern.field_name],
-                    "keywords": list(pattern.keywords)[:3]  # First 3 keywords
-                })
+                suggestions.append(
+                    {
+                        "field": pattern.field_name,
+                        "description": pattern.description,
+                        "value": extracted_fields[pattern.field_name],
+                        "keywords": list(pattern.keywords)[:3],  # First 3 keywords
+                    }
+                )
 
         return suggestions
 
@@ -278,7 +275,7 @@ class FieldExtractor:
         pattern_str: str,
         field_name: str,
         description: str,
-        priority: int = 2
+        priority: int = 2,
     ) -> None:
         """
         Add a custom field extraction pattern.
@@ -297,7 +294,7 @@ class FieldExtractor:
                 pattern=pattern,
                 field_name=field_name,
                 description=description,
-                priority=priority
+                priority=priority,
             )
             self.patterns.append(field_pattern)
             logger.info(f"Added custom pattern for field: {field_name}")
@@ -318,7 +315,7 @@ class FieldExtractor:
             "patterns_by_priority": {},
             "keyword_coverage": set(),
             "field_coverage": set(),
-            "duplicate_fields": []
+            "duplicate_fields": [],
         }
 
         # Count patterns by priority
@@ -335,15 +332,21 @@ class FieldExtractor:
         # Check for duplicate fields
         field_counts = {}
         for pattern in self.patterns:
-            field_counts[pattern.field_name] = field_counts.get(pattern.field_name, 0) + 1
+            field_counts[pattern.field_name] = (
+                field_counts.get(pattern.field_name, 0) + 1
+            )
 
         validation_results["duplicate_fields"] = [
             field for field, count in field_counts.items() if count > 1
         ]
 
         # Convert sets to lists for JSON serialization
-        validation_results["keyword_coverage"] = list(validation_results["keyword_coverage"])
-        validation_results["field_coverage"] = list(validation_results["field_coverage"])
+        validation_results["keyword_coverage"] = list(
+            validation_results["keyword_coverage"]
+        )
+        validation_results["field_coverage"] = list(
+            validation_results["field_coverage"]
+        )
 
         return validation_results
 
@@ -361,7 +364,7 @@ class FieldExtractor:
             "total_texts": len(sample_texts),
             "successful_extractions": 0,
             "field_extraction_counts": {},
-            "sample_extractions": []
+            "sample_extractions": [],
         }
 
         for i, text in enumerate(sample_texts):
@@ -378,12 +381,16 @@ class FieldExtractor:
 
             # Store sample extractions
             if i < 5:  # First 5 samples
-                results["sample_extractions"].append({
-                    "text_preview": text[:100] + "..." if len(text) > 100 else text,
-                    "extracted_fields": extracted_fields
-                })
+                results["sample_extractions"].append(
+                    {
+                        "text_preview": text[:100] + "..." if len(text) > 100 else text,
+                        "extracted_fields": extracted_fields,
+                    }
+                )
 
-        results["extraction_rate"] = results["successful_extractions"] / len(sample_texts)
+        results["extraction_rate"] = results["successful_extractions"] / len(
+            sample_texts
+        )
 
         return results
 
@@ -396,7 +403,9 @@ class SmartFieldExtractor(FieldExtractor):
         super().__init__()
         self.fuzzy_threshold = 0.8
 
-    def fuzzy_extract_field(self, text: str, query: str, threshold: float = 0.8) -> Optional[Tuple[str, float]]:
+    def fuzzy_extract_field(
+        self, text: str, query: str, threshold: float = 0.8
+    ) -> Optional[Tuple[str, float]]:
         """
         Extract field using fuzzy matching for better recall.
 
@@ -418,7 +427,9 @@ class SmartFieldExtractor(FieldExtractor):
         for pattern in self.patterns:
             # Calculate keyword similarity
             pattern_words = pattern.keywords
-            similarity = len(query_words & pattern_words) / len(query_words | pattern_words)
+            similarity = len(query_words & pattern_words) / len(
+                query_words | pattern_words
+            )
 
             if similarity >= threshold:
                 match = pattern.pattern.search(text)
@@ -428,7 +439,9 @@ class SmartFieldExtractor(FieldExtractor):
 
         return (best_match, best_confidence) if best_match else None
 
-    def context_aware_extraction(self, text: str, query: str, context: Dict[str, Any]) -> Optional[str]:
+    def context_aware_extraction(
+        self, text: str, query: str, context: Dict[str, Any]
+    ) -> Optional[str]:
         """
         Extract field considering additional context.
 
@@ -456,7 +469,9 @@ class SmartFieldExtractor(FieldExtractor):
 
         return None
 
-    def _infer_price_from_context(self, text: str, context: Dict[str, Any]) -> Optional[str]:
+    def _infer_price_from_context(
+        self, text: str, context: Dict[str, Any]
+    ) -> Optional[str]:
         """Infer price information from context."""
         # This is a placeholder for more sophisticated context-based inference
         category = context.get("category", "").lower()

@@ -15,9 +15,11 @@ import time
 # Import loguru
 from loguru import logger
 
+
 # Define custom exception
 class LLMError(Exception):
     """Exception raised for LLM-related errors."""
+
     pass
 
 
@@ -30,7 +32,7 @@ class BaseLLMClient(ABC):
         prompt: str,
         max_tokens: int = 300,
         temperature: float = 0.1,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response from prompt."""
         pass
@@ -48,7 +50,7 @@ class FreeLLMClient(BaseLLMClient):
         self,
         model_name: str = "microsoft/DialoGPT-medium",
         api_token: Optional[str] = None,
-        device: str = "auto"
+        device: str = "auto",
     ):
         """Initialize free LLM client."""
         self.model_name = model_name
@@ -74,6 +76,7 @@ class FreeLLMClient(BaseLLMClient):
         if HF_AVAILABLE and api_token:
             try:
                 from huggingface_hub import InferenceClient
+
                 self.client = InferenceClient(model=model_name, token=api_token)
                 self.client_type = "hf_inference"
                 logger.info(f"Using Hugging Face Inference API: {model_name}")
@@ -84,11 +87,12 @@ class FreeLLMClient(BaseLLMClient):
         if self.client is None and TRANSFORMERS_AVAILABLE:
             try:
                 from transformers import pipeline
+
                 self.client = pipeline(
                     "text-generation",
                     model=model_name,
                     device=0 if device == "cuda" else -1,
-                    torch_dtype="auto"
+                    torch_dtype="auto",
                 )
                 self.client_type = "transformers"
                 logger.info(f"Using local transformers pipeline: {model_name}")
@@ -104,7 +108,7 @@ class FreeLLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 200,
         temperature: float = 0.7,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response using available free LLM."""
         try:
@@ -113,7 +117,7 @@ class FreeLLMClient(BaseLLMClient):
                     prompt,
                     max_new_tokens=max_tokens,
                     temperature=temperature,
-                    return_full_text=False
+                    return_full_text=False,
                 )
                 return response.strip()
 
@@ -123,9 +127,9 @@ class FreeLLMClient(BaseLLMClient):
                     max_new_tokens=max_tokens,
                     temperature=temperature,
                     do_sample=True,
-                    pad_token_id=self.client.tokenizer.eos_token_id
+                    pad_token_id=self.client.tokenizer.eos_token_id,
                 )
-                response = outputs[0]['generated_text'][len(prompt):].strip()
+                response = outputs[0]["generated_text"][len(prompt) :].strip()
 
                 # Apply stop sequences
                 if stop_sequences:
@@ -148,15 +152,21 @@ class FreeLLMClient(BaseLLMClient):
         """Generate fallback response when no LLM is available."""
         # Extract search results from prompt for basic response
         if "search results:" in prompt.lower():
-            return ("Based on the search results, I found several relevant products that match your query. "
-                   "Please review the products listed above for detailed information including prices, "
-                   "specifications, and purchasing links.")
+            return (
+                "Based on the search results, I found several relevant products that match your query. "
+                "Please review the products listed above for detailed information including prices, "
+                "specifications, and purchasing links."
+            )
         elif "product" in prompt.lower():
-            return ("Here are some product recommendations based on your search. "
-                   "Each result includes product details, pricing, and direct links to purchase.")
+            return (
+                "Here are some product recommendations based on your search. "
+                "Each result includes product details, pricing, and direct links to purchase."
+            )
         else:
-            return ("I found some relevant results for your query. "
-                   "Please check the search results above for more information.")
+            return (
+                "I found some relevant results for your query. "
+                "Please check the search results above for more information."
+            )
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information."""
@@ -164,7 +174,7 @@ class FreeLLMClient(BaseLLMClient):
             "model_name": self.model_name,
             "client_type": self.client_type,
             "device": self.device,
-            "available": self.client is not None
+            "available": self.client is not None,
         }
 
 
@@ -175,7 +185,7 @@ class OllamaLLMClient(BaseLLMClient):
         self,
         model_name: str = "llama2",
         base_url: str = "http://localhost:11434",
-        **kwargs
+        **kwargs,
     ):
         """Initialize Ollama client."""
         self.model_name = model_name
@@ -193,7 +203,9 @@ class OllamaLLMClient(BaseLLMClient):
                     logger.info(f"Ollama model {self.model_name} is available")
                     return True
                 else:
-                    logger.warning(f"Ollama model {self.model_name} not found. Available: {model_names}")
+                    logger.warning(
+                        f"Ollama model {self.model_name} not found. Available: {model_names}"
+                    )
             return False
         except Exception as e:
             logger.warning(f"Ollama not available: {e}")
@@ -204,7 +216,7 @@ class OllamaLLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 200,
         temperature: float = 0.7,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response using Ollama."""
         if not self.available:
@@ -215,19 +227,14 @@ class OllamaLLMClient(BaseLLMClient):
                 "model": self.model_name,
                 "prompt": prompt,
                 "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens
-                }
+                "options": {"temperature": temperature, "num_predict": max_tokens},
             }
 
             if stop_sequences:
                 payload["options"]["stop"] = stop_sequences
 
             response = requests.post(
-                f"{self.base_url}/api/generate",
-                json=payload,
-                timeout=30
+                f"{self.base_url}/api/generate", json=payload, timeout=30
             )
 
             if response.status_code == 200:
@@ -246,15 +253,12 @@ class OllamaLLMClient(BaseLLMClient):
             "model_name": self.model_name,
             "base_url": self.base_url,
             "available": self.available,
-            "type": "ollama"
+            "type": "ollama",
         }
 
 
 def create_llm_client(
-    provider: str,
-    model_name: str,
-    api_token: str,
-    **kwargs
+    provider: str, model_name: str, api_token: str, **kwargs
 ) -> BaseLLMClient:
     """
     Factory function to create LLM clients.
@@ -269,23 +273,14 @@ def create_llm_client(
         LLM client instance
     """
     if provider.lower() == "free":
-        return FreeLLMClient(
-            model_name=model_name,
-            api_token=api_token,
-            **kwargs
-        )
+        return FreeLLMClient(model_name=model_name, api_token=api_token, **kwargs)
     elif provider.lower() == "ollama":
-        return OllamaLLMClient(
-            model_name=model_name,
-            **kwargs
-        )
+        return OllamaLLMClient(model_name=model_name, **kwargs)
     else:
         # Default to free LLM client for unknown providers
         logger.warning(f"Unknown provider '{provider}', using free LLM client")
         return FreeLLMClient(
-            model_name="microsoft/DialoGPT-medium",
-            api_token=api_token,
-            **kwargs
+            model_name="microsoft/DialoGPT-medium", api_token=api_token, **kwargs
         )
 
 
@@ -300,20 +295,20 @@ def test_free_llm_responses():
             "name": "Free Fallback (No dependencies)",
             "provider": "free",
             "model": "fallback",
-            "token": None
+            "token": None,
         },
         {
             "name": "Local Transformers (if available)",
             "provider": "free",
             "model": "gpt2",
-            "token": None
+            "token": None,
         },
         {
             "name": "Ollama (if running)",
             "provider": "ollama",
             "model": "llama2",
-            "token": None
-        }
+            "token": None,
+        },
     ]
 
     # E-commerce test prompts
@@ -334,7 +329,6 @@ Search results:
    - Features: Hi-Res Audio, 40-hour playtime
 
 Provide a helpful response:""",
-
         """User query: educational toys for 5 year old kids
 
 Search results:
@@ -350,12 +344,12 @@ Search results:
    - Product URL: https://example.com/leapstart
    - Features: Interactive books, stylus included
 
-Provide a helpful response:"""
+Provide a helpful response:""",
     ]
 
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("🧪 TESTING FREE LLM PROVIDERS")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     for config_info in free_llm_configs:
         logger.info(f"\n📋 Testing: {config_info['name']}")
@@ -365,9 +359,9 @@ Provide a helpful response:"""
         try:
             # Create LLM client
             llm_client = create_llm_client(
-                provider=config_info['provider'],
-                model_name=config_info['model'],
-                api_token=config_info['token'] or "dummy_token"
+                provider=config_info["provider"],
+                model_name=config_info["model"],
+                api_token=config_info["token"] or "dummy_token",
             )
 
             model_info = llm_client.get_model_info()
@@ -375,14 +369,14 @@ Provide a helpful response:"""
 
             # Test with first prompt
             prompt = test_prompts[0]
-            logger.info(f"\n🔍 Testing query: 'wireless bluetooth headphones under $100'")
+            logger.info(
+                f"\n🔍 Testing query: 'wireless bluetooth headphones under $100'"
+            )
 
             # Generate response
             start_time = time.time()
             response = llm_client.generate_response(
-                prompt=prompt,
-                max_tokens=150,
-                temperature=0.7
+                prompt=prompt, max_tokens=150, temperature=0.7
             )
             generation_time = time.time() - start_time
 
@@ -393,30 +387,28 @@ Provide a helpful response:"""
             logger.error(f"❌ Failed: {e}")
 
     # Demonstrate complete responses with fallback
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("🎯 COMPLETE E-COMMERCE RESPONSES")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     # Use fallback client for guaranteed responses
     fallback_client = create_llm_client(
-        provider="free",
-        model_name="fallback",
-        api_token=None
+        provider="free", model_name="fallback", api_token=None
     )
 
     for i, prompt in enumerate(test_prompts, 1):
         # Extract query for display
-        query_line = [line for line in prompt.split('\n') if line.startswith('User query:')][0]
-        query = query_line.replace('User query: ', '')
+        query_line = [
+            line for line in prompt.split("\n") if line.startswith("User query:")
+        ][0]
+        query = query_line.replace("User query: ", "")
 
         logger.info(f"\n--- Test {i}: '{query}' ---")
 
         # Generate response
         start_time = time.time()
         response = fallback_client.generate_response(
-            prompt=prompt,
-            max_tokens=200,
-            temperature=0.7
+            prompt=prompt, max_tokens=200, temperature=0.7
         )
         generation_time = time.time() - start_time
 
@@ -424,9 +416,9 @@ Provide a helpful response:"""
         print(f"   {response}")
 
     # Show setup instructions
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("📋 SETUP INSTRUCTIONS")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     print("\n🆓 Free LLM Setup Options:")
     print("\n1. **Fallback Responses** (Current - Always works)")

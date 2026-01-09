@@ -1,6 +1,7 @@
 """
 Prompt building utilities for the RAG pipeline.
 """
+
 from typing import List, Dict, Any, Optional
 import pandas as pd
 from loguru import logger
@@ -35,9 +36,7 @@ A: Based on the available products, I can recommend several gaming laptops under
 """
 
     def build_context_from_metadata(
-        self,
-        metadata_list: List[ProductMetadata],
-        max_items: Optional[int] = None
+        self, metadata_list: List[ProductMetadata], max_items: Optional[int] = None
     ) -> str:
         """
         Build context string from product metadata.
@@ -95,7 +94,7 @@ A: Based on the available products, I can recommend several gaming laptops under
         query: str,
         retrieved_metadata: List[ProductMetadata],
         include_examples: bool = True,
-        custom_instructions: Optional[str] = None
+        custom_instructions: Optional[str] = None,
     ) -> str:
         """
         Build complete RAG prompt with query and retrieved context.
@@ -113,7 +112,9 @@ A: Based on the available products, I can recommend several gaming laptops under
         context = self.build_context_from_metadata(retrieved_metadata)
 
         # Build instruction section
-        instructions = custom_instructions or """You are a helpful AI assistant for an e-commerce website. Your job is to answer customer questions based on available product details.
+        instructions = (
+            custom_instructions
+            or """You are a helpful AI assistant for an e-commerce website. Your job is to answer customer questions based on available product details.
 
 Guidelines:
 - Provide informative and accurate responses using the product information provided
@@ -122,6 +123,7 @@ Guidelines:
 - If you don't have enough information to answer the question, say "I'm not sure based on the available product data"
 - Be concise but comprehensive in your responses
 - Focus on the most relevant products for the user's query"""
+        )
 
         # Combine all parts
         prompt_parts = []
@@ -129,19 +131,23 @@ Guidelines:
         if include_examples:
             prompt_parts.append(self.few_shot_examples.strip())
 
-        prompt_parts.extend([
-            instructions,
-            f"\nUser question:\n{query}",
-            f"\nHere are some product descriptions that may be relevant:\n{context}",
-            "\nProvide an informative and accurate response:"
-        ])
+        prompt_parts.extend(
+            [
+                instructions,
+                f"\nUser question:\n{query}",
+                f"\nHere are some product descriptions that may be relevant:\n{context}",
+                "\nProvide an informative and accurate response:",
+            ]
+        )
 
         full_prompt = "\n\n".join(prompt_parts)
 
         # Ensure we don't exceed character limit
         if len(full_prompt) > self.max_chars:
-            logger.warning(f"Prompt length {len(full_prompt)} exceeds limit {self.max_chars}")
-            full_prompt = full_prompt[:self.max_chars].strip()
+            logger.warning(
+                f"Prompt length {len(full_prompt)} exceeds limit {self.max_chars}"
+            )
+            full_prompt = full_prompt[: self.max_chars].strip()
 
         return full_prompt
 
@@ -149,7 +155,7 @@ Guidelines:
         self,
         query: str,
         retrieved_metadata: List[ProductMetadata],
-        ground_truth: Optional[str] = None
+        ground_truth: Optional[str] = None,
     ) -> str:
         """
         Build prompt for evaluation purposes.
@@ -182,7 +188,7 @@ Answer:"""
         self,
         query: str,
         product_groups: List[List[ProductMetadata]],
-        group_labels: Optional[List[str]] = None
+        group_labels: Optional[List[str]] = None,
     ) -> str:
         """
         Build prompt for comparing different product groups.
@@ -197,15 +203,21 @@ Answer:"""
         """
         prompt_parts = [
             "You are a product comparison expert. Compare the following product groups based on the user's query.",
-            f"\nUser Query: {query}\n"
+            f"\nUser Query: {query}\n",
         ]
 
         for i, group in enumerate(product_groups):
-            label = group_labels[i] if group_labels and i < len(group_labels) else f"Group {i+1}"
+            label = (
+                group_labels[i]
+                if group_labels and i < len(group_labels)
+                else f"Group {i+1}"
+            )
             context = self.build_context_from_metadata(group, max_items=3)
             prompt_parts.append(f"{label}:\n{context}")
 
-        prompt_parts.append("\nProvide a detailed comparison highlighting the key differences and similarities:")
+        prompt_parts.append(
+            "\nProvide a detailed comparison highlighting the key differences and similarities:"
+        )
 
         return "\n\n".join(prompt_parts)
 
@@ -235,7 +247,10 @@ Answer:"""
         if metadata.shipping_weight and metadata.shipping_weight != "Not available":
             features["shipping_weight"] = metadata.shipping_weight
 
-        if metadata.product_dimensions and metadata.product_dimensions != "Not available":
+        if (
+            metadata.product_dimensions
+            and metadata.product_dimensions != "Not available"
+        ):
             features["dimensions"] = metadata.product_dimensions
 
         return features

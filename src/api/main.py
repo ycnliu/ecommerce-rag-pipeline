@@ -1,6 +1,7 @@
 """
 FastAPI application for the e-commerce RAG pipeline.
 """
+
 import time
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -18,7 +19,7 @@ from ..data.models import (
     EmbeddingRequest,
     EmbeddingResponse,
     HealthCheck,
-    IndexStats
+    IndexStats,
 )
 from ..rag.rag_pipeline import RAGPipeline
 from ..utils.config import Config
@@ -49,7 +50,7 @@ app = FastAPI(
     title="E-commerce RAG Pipeline API",
     description="Multimodal product search and recommendation API using RAG",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -68,14 +69,14 @@ async def root():
     return {
         "message": "E-commerce RAG Pipeline API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
     }
 
 
 @app.get("/health", response_model=HealthCheck)
 async def health_check(
     rag_pipeline: RAGPipeline = Depends(get_rag_pipeline),
-    config: Config = Depends(get_config)
+    config: Config = Depends(get_config),
 ):
     """Health check endpoint."""
     try:
@@ -85,7 +86,9 @@ async def health_check(
         # Check embedding service
         try:
             model_info = rag_pipeline.embedding_service.get_model_info()
-            services["embedding_service"] = "healthy" if model_info["model_loaded"] else "not_loaded"
+            services["embedding_service"] = (
+                "healthy" if model_info["model_loaded"] else "not_loaded"
+            )
         except Exception as e:
             services["embedding_service"] = f"error: {str(e)}"
 
@@ -114,7 +117,7 @@ async def health_check(
             status="healthy",
             timestamp=datetime.now().isoformat(),
             services=services,
-            index_stats=index_stats
+            index_stats=index_stats,
         )
 
     except Exception as e:
@@ -124,8 +127,7 @@ async def health_check(
 
 @app.post("/search", response_model=QueryResponse)
 async def search_products(
-    request: QueryRequest,
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
+    request: QueryRequest, rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
 ):
     """
     Search for products using text and/or image queries.
@@ -141,7 +143,7 @@ async def search_products(
             image_query=request.image_query,
             k=request.k,
             rerank=request.rerank,
-            generate_response=True
+            generate_response=True,
         )
 
         logger.info(f"Search completed in {response.processing_time:.2f}s")
@@ -161,7 +163,7 @@ async def search_by_image(
     text_query: Optional[str] = None,
     k: int = 5,
     rerank: bool = False,
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
+    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline),
 ):
     """
     Search for products using an uploaded image.
@@ -171,7 +173,7 @@ async def search_by_image(
     """
     try:
         # Validate file type
-        if not file.content_type.startswith('image/'):
+        if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="File must be an image")
 
         # Read image data
@@ -184,7 +186,7 @@ async def search_by_image(
             image_query=image_data,
             k=k,
             rerank=rerank,
-            generate_response=True
+            generate_response=True,
         )
 
         logger.info(f"Image search completed in {response.processing_time:.2f}s")
@@ -200,8 +202,7 @@ async def search_by_image(
 
 @app.post("/embeddings/text", response_model=EmbeddingResponse)
 async def get_text_embedding(
-    request: EmbeddingRequest,
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
+    request: EmbeddingRequest, rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
 ):
     """Generate embedding for text input."""
     try:
@@ -210,10 +211,7 @@ async def get_text_embedding(
 
         embedding = rag_pipeline.embedding_service.get_text_embedding(request.text)
 
-        return EmbeddingResponse(
-            embedding=embedding.tolist(),
-            embedding_type="text"
-        )
+        return EmbeddingResponse(embedding=embedding.tolist(), embedding_type="text")
 
     except EmbeddingError as e:
         logger.error(f"Text embedding error: {e}")
@@ -225,21 +223,17 @@ async def get_text_embedding(
 
 @app.post("/embeddings/image", response_model=EmbeddingResponse)
 async def get_image_embedding(
-    file: UploadFile = File(...),
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
+    file: UploadFile = File(...), rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
 ):
     """Generate embedding for uploaded image."""
     try:
-        if not file.content_type.startswith('image/'):
+        if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="File must be an image")
 
         image_data = await file.read()
         embedding = rag_pipeline.embedding_service.get_image_embedding(image_data)
 
-        return EmbeddingResponse(
-            embedding=embedding.tolist(),
-            embedding_type="image"
-        )
+        return EmbeddingResponse(embedding=embedding.tolist(), embedding_type="image")
 
     except EmbeddingError as e:
         logger.error(f"Image embedding error: {e}")
@@ -250,9 +244,7 @@ async def get_image_embedding(
 
 
 @app.get("/stats", response_model=Dict[str, Any])
-async def get_pipeline_stats(
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
-):
+async def get_pipeline_stats(rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)):
     """Get pipeline statistics and information."""
     try:
         stats = rag_pipeline.get_pipeline_stats()
@@ -266,7 +258,7 @@ async def get_pipeline_stats(
 async def batch_search(
     requests: List[QueryRequest],
     background_tasks: BackgroundTasks,
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
+    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline),
 ):
     """
     Process multiple search queries in batch.
@@ -275,7 +267,9 @@ async def batch_search(
     """
     try:
         if len(requests) > 100:  # Limit batch size
-            raise HTTPException(status_code=400, detail="Batch size too large (max 100)")
+            raise HTTPException(
+                status_code=400, detail="Batch size too large (max 100)"
+            )
 
         logger.info(f"Processing batch of {len(requests)} queries")
 
@@ -283,8 +277,7 @@ async def batch_search(
 
         # Log batch completion in background
         background_tasks.add_task(
-            logger.info,
-            f"Batch processing completed: {len(responses)} responses"
+            logger.info, f"Batch processing completed: {len(responses)} responses"
         )
 
         return responses
@@ -299,9 +292,7 @@ async def batch_search(
 
 @app.get("/similar/{product_url:path}", response_model=List[Dict[str, Any]])
 async def get_similar_products(
-    product_url: str,
-    k: int = 5,
-    rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
+    product_url: str, k: int = 5, rag_pipeline: RAGPipeline = Depends(get_rag_pipeline)
 ):
     """Find products similar to a given product URL."""
     try:
@@ -324,8 +315,8 @@ async def http_exception_handler(request, exc):
         content={
             "error": exc.detail,
             "timestamp": datetime.now().isoformat(),
-            "path": str(request.url)
-        }
+            "path": str(request.url),
+        },
     )
 
 
@@ -338,16 +329,12 @@ async def general_exception_handler(request, exc):
         content={
             "error": "Internal server error",
             "timestamp": datetime.now().isoformat(),
-            "path": str(request.url)
-        }
+            "path": str(request.url),
+        },
     )
 
 
 if __name__ == "__main__":
     uvicorn.run(
-        "src.api.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+        "src.api.main:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
     )

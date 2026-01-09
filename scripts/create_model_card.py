@@ -17,13 +17,13 @@ def load_model_config(model_path: str) -> Dict[str, Any]:
     # Try to load from config.json
     config_file = model_path / "config.json"
     if config_file.exists():
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             return json.load(f)
 
     # Try to load from model_config.json
     config_file = model_path / "model_config.json"
     if config_file.exists():
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             return json.load(f)
 
     # Return empty config if none found
@@ -40,18 +40,18 @@ def generate_model_card(model_path: str, model_type: str, output_file: str) -> N
         "clip": {
             "task": "multimodal-embedding",
             "description": "Fine-tuned CLIP model for e-commerce product understanding",
-            "base_model": "openai/clip-vit-base-patch32"
+            "base_model": "openai/clip-vit-base-patch32",
         },
         "fusion": {
             "task": "text-embedding",
             "description": "Advanced embedding fusion model combining CLIP and SentenceTransformer",
-            "base_model": "sentence-transformers/all-MiniLM-L6-v2"
+            "base_model": "sentence-transformers/all-MiniLM-L6-v2",
         },
         "full_pipeline": {
             "task": "feature-extraction",
             "description": "Complete RAG pipeline with multimodal embeddings",
-            "base_model": "multiple"
-        }
+            "base_model": "multiple",
+        },
     }
 
     template = card_templates.get(model_type, card_templates["clip"])
@@ -188,18 +188,26 @@ For questions or issues, please contact: your-email@example.com
 """
 
     # Write the model card
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         f.write(model_card)
 
     print(f"Model card generated successfully: {output_file}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate model card for Hugging Face Hub")
+    parser = argparse.ArgumentParser(
+        description="Generate model card for Hugging Face Hub"
+    )
     parser.add_argument("--model-path", required=True, help="Path to the trained model")
-    parser.add_argument("--model-type", required=True, choices=["clip", "fusion", "full_pipeline"],
-                       help="Type of model")
-    parser.add_argument("--output-file", required=True, help="Output file path for the model card")
+    parser.add_argument(
+        "--model-type",
+        required=True,
+        choices=["clip", "fusion", "full_pipeline"],
+        help="Type of model",
+    )
+    parser.add_argument(
+        "--output-file", required=True, help="Output file path for the model card"
+    )
 
     args = parser.parse_args()
 

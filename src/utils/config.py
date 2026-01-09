@@ -1,6 +1,7 @@
 """
 Configuration management for the e-commerce RAG pipeline.
 """
+
 import os
 from typing import Optional, List
 from pydantic import Field
@@ -22,7 +23,9 @@ class Config(BaseSettings):
     api_workers: int = Field(default=1, env="API_WORKERS")
 
     # CLIP Embedding settings
-    clip_model_name: str = Field(default="openai/clip-vit-base-patch32", env="CLIP_MODEL_NAME")
+    clip_model_name: str = Field(
+        default="openai/clip-vit-base-patch32", env="CLIP_MODEL_NAME"
+    )
     embedding_dimension: int = Field(default=512, env="EMBEDDING_DIMENSION")
     device: Optional[str] = Field(default=None, env="DEVICE")  # auto-detect if None
     model_cache_dir: Optional[str] = Field(default=None, env="MODEL_CACHE_DIR")
@@ -37,7 +40,9 @@ class Config(BaseSettings):
 
     # LLM settings
     llm_provider: str = Field(default="huggingface", env="LLM_PROVIDER")
-    llm_model_name: str = Field(default="mistralai/Mixtral-8x7B-Instruct-v0.1", env="LLM_MODEL_NAME")
+    llm_model_name: str = Field(
+        default="mistralai/Mixtral-8x7B-Instruct-v0.1", env="LLM_MODEL_NAME"
+    )
     llm_api_token: Optional[str] = Field(default=None, env="LLM_API_TOKEN")
     llm_base_url: Optional[str] = Field(default=None, env="LLM_BASE_URL")
     llm_max_tokens: int = Field(default=300, env="LLM_MAX_TOKENS")
@@ -45,7 +50,9 @@ class Config(BaseSettings):
 
     # Data settings
     data_csv_path: Optional[str] = Field(default=None, env="DATA_CSV_PATH")
-    embeddings_cache_path: Optional[str] = Field(default=None, env="EMBEDDINGS_CACHE_PATH")
+    embeddings_cache_path: Optional[str] = Field(
+        default=None, env="EMBEDDINGS_CACHE_PATH"
+    )
 
     # Processing settings
     batch_size: int = Field(default=32, env="BATCH_SIZE")
@@ -64,6 +71,7 @@ class Config(BaseSettings):
 
     class Config:
         """Pydantic config."""
+
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
@@ -108,10 +116,14 @@ class Config(BaseSettings):
             self.faiss_index_path = str(project_root / "models" / "product_index.faiss")
 
         if not self.faiss_metadata_path:
-            self.faiss_metadata_path = str(project_root / "models" / "product_metadata.pkl")
+            self.faiss_metadata_path = str(
+                project_root / "models" / "product_metadata.pkl"
+            )
 
         if not self.embeddings_cache_path:
-            self.embeddings_cache_path = str(project_root / "models" / "embeddings_cache.npy")
+            self.embeddings_cache_path = str(
+                project_root / "models" / "embeddings_cache.npy"
+            )
 
         if not self.log_file_path:
             log_dir = project_root / "logs"
@@ -130,7 +142,7 @@ class Config(BaseSettings):
             "faiss_index": self.faiss_index_path,
             "faiss_metadata": self.faiss_metadata_path,
             "embeddings_cache": self.embeddings_cache_path,
-            "model_cache": self.model_cache_dir
+            "model_cache": self.model_cache_dir,
         }
 
     def is_development(self) -> bool:
@@ -143,7 +155,7 @@ class Config(BaseSettings):
             "allow_origins": self.allowed_origins,
             "allow_credentials": True,
             "allow_methods": ["*"],
-            "allow_headers": ["*"]
+            "allow_headers": ["*"],
         }
 
     def get_uvicorn_config(self) -> dict:
@@ -153,7 +165,7 @@ class Config(BaseSettings):
             "port": self.api_port,
             "workers": self.api_workers,
             "log_level": self.log_level.lower(),
-            "reload": self.is_development()
+            "reload": self.is_development(),
         }
 
     def validate_llm_config(self) -> bool:

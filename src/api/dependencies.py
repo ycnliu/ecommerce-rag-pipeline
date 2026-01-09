@@ -1,6 +1,7 @@
 """
 Dependency injection for FastAPI endpoints.
 """
+
 import os
 from functools import lru_cache
 from typing import Optional
@@ -28,7 +29,7 @@ def get_embedding_service() -> CLIPEmbeddingService:
     service = CLIPEmbeddingService(
         model_name=config.clip_model_name,
         device=config.device,
-        cache_dir=config.model_cache_dir
+        cache_dir=config.model_cache_dir,
     )
 
     # Load model
@@ -45,15 +46,12 @@ def get_vector_db() -> FAISSVectorDB:
     vector_db = FAISSVectorDB(
         dimension=config.embedding_dimension,
         index_type=config.faiss_index_type,
-        metric=config.faiss_metric
+        metric=config.faiss_metric,
     )
 
     # Load existing index if available
     if config.faiss_index_path and os.path.exists(config.faiss_index_path):
-        vector_db.load_index(
-            config.faiss_index_path,
-            config.faiss_metadata_path
-        )
+        vector_db.load_index(config.faiss_index_path, config.faiss_metadata_path)
 
     return vector_db
 
@@ -69,7 +67,7 @@ def get_llm_client():
     return create_llm_client(
         provider=config.llm_provider,
         model_name=config.llm_model_name,
-        api_token=config.llm_api_token
+        api_token=config.llm_api_token,
     )
 
 
@@ -81,9 +79,7 @@ def get_rag_pipeline() -> RAGPipeline:
     llm_client = get_llm_client()
 
     return RAGPipeline(
-        embedding_service=embedding_service,
-        vector_db=vector_db,
-        llm_client=llm_client
+        embedding_service=embedding_service, vector_db=vector_db, llm_client=llm_client
     )
 
 

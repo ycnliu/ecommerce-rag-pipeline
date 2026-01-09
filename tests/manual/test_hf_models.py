@@ -8,12 +8,13 @@ from huggingface_hub import InferenceClient
 from loguru import logger
 import time
 
+
 def test_hf_models():
     """Test multiple HF models to find working ones."""
 
     load_dotenv()
 
-    hf_token = os.getenv('HF_TOKEN')
+    hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
         logger.error("No HF_TOKEN found in environment")
         return
@@ -23,10 +24,10 @@ def test_hf_models():
     # Models that typically work well with Inference API
     models_to_test = [
         "microsoft/DialoGPT-small",  # Smaller, more likely to work
-        "google/flan-t5-base",       # T5 models are reliable
+        "google/flan-t5-base",  # T5 models are reliable
         "facebook/blenderbot-400M-distill",  # Conversational
-        "distilgpt2",                # Simple and fast
-        "gpt2"                       # Classic and reliable
+        "distilgpt2",  # Simple and fast
+        "gpt2",  # Classic and reliable
     ]
 
     test_prompt = "Recommend wireless headphones under $100."
@@ -39,10 +40,7 @@ def test_hf_models():
 
             start_time = time.time()
             response = client.text_generation(
-                test_prompt,
-                max_new_tokens=50,
-                temperature=0.5,
-                return_full_text=False
+                test_prompt, max_new_tokens=50, temperature=0.5, return_full_text=False
             )
             generation_time = time.time() - start_time
 
@@ -66,13 +64,15 @@ def test_hf_models():
                 self.api_token = api_token
                 self.client = InferenceClient(model=model_name, token=api_token)
 
-            def generate_response(self, prompt: str, max_tokens: int = 50, temperature: float = 0.5) -> str:
+            def generate_response(
+                self, prompt: str, max_tokens: int = 50, temperature: float = 0.5
+            ) -> str:
                 try:
                     response = self.client.text_generation(
                         prompt,
                         max_new_tokens=max_tokens,
                         temperature=temperature,
-                        return_full_text=False
+                        return_full_text=False,
                     )
                     return response.strip()
                 except Exception as e:
@@ -89,7 +89,9 @@ def test_hf_models():
 
 Recommendation:"""
 
-        response = test_client.generate_response(ecommerce_prompt, max_tokens=100, temperature=0.3)
+        response = test_client.generate_response(
+            ecommerce_prompt, max_tokens=100, temperature=0.3
+        )
         logger.info(f"🎯 E-commerce Response: {response}")
 
     except Exception as e:
@@ -98,6 +100,7 @@ Recommendation:"""
     logger.info("\n✅ Token is valid and stored securely!")
     logger.info("💾 Configuration saved in .env file (gitignored)")
     logger.info("🔧 You can now use: LLM_PROVIDER=free with your HF token")
+
 
 if __name__ == "__main__":
     test_hf_models()

@@ -8,12 +8,13 @@ from dotenv import load_dotenv
 from huggingface_hub import HfApi
 from loguru import logger
 
+
 def check_hf_quota():
     """Check HuggingFace API quota and limits."""
 
     load_dotenv()
 
-    hf_token = os.getenv('HF_TOKEN')
+    hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
         logger.error("No HF_TOKEN found in environment")
         return
@@ -31,7 +32,7 @@ def check_hf_quota():
         logger.info(f"📧 Email: {user_info.get('email', 'Not available')}")
 
         # Check if user has pro account
-        plan = user_info.get('plan', 'free')
+        plan = user_info.get("plan", "free")
         logger.info(f"💳 Plan: {plan}")
 
         # Get available models
@@ -41,7 +42,7 @@ def check_hf_quota():
             "gpt2",
             "microsoft/DialoGPT-small",
             "google/flan-t5-small",
-            "facebook/blenderbot-400M-distill"
+            "facebook/blenderbot-400M-distill",
         ]
 
         working_models = []
@@ -74,18 +75,18 @@ def check_hf_quota():
             logger.warning("⏳ Model is loading, try again in a few minutes")
         elif response.status_code == 429:
             logger.warning("🚫 Rate limit reached")
-            if 'x-ratelimit-remaining' in response.headers:
-                remaining = response.headers['x-ratelimit-remaining']
+            if "x-ratelimit-remaining" in response.headers:
+                remaining = response.headers["x-ratelimit-remaining"]
                 logger.info(f"   Remaining requests: {remaining}")
         else:
             logger.error(f"❌ API Error: {response.status_code}")
             logger.error(f"   Response: {response.text[:200]}...")
 
         # Show rate limit headers if available
-        if 'x-ratelimit-limit' in response.headers:
-            limit = response.headers['x-ratelimit-limit']
-            remaining = response.headers.get('x-ratelimit-remaining', 'Unknown')
-            reset = response.headers.get('x-ratelimit-reset', 'Unknown')
+        if "x-ratelimit-limit" in response.headers:
+            limit = response.headers["x-ratelimit-limit"]
+            remaining = response.headers.get("x-ratelimit-remaining", "Unknown")
+            reset = response.headers.get("x-ratelimit-reset", "Unknown")
 
             logger.info(f"\n📊 Rate Limits:")
             logger.info(f"   Limit: {limit} requests")
@@ -94,7 +95,7 @@ def check_hf_quota():
 
         # Recommendations
         logger.info("\n💡 Recommendations:")
-        if plan == 'free':
+        if plan == "free":
             logger.info("🆓 Free tier detected:")
             logger.info("   - Limited requests per hour")
             logger.info("   - Models may have loading delays")
@@ -111,11 +112,12 @@ def check_hf_quota():
     except Exception as e:
         logger.error(f"❌ Error checking account: {e}")
 
+
 def check_spaces_eligibility():
     """Check if account can deploy to HuggingFace Spaces."""
 
     load_dotenv()
-    hf_token = os.getenv('HF_TOKEN')
+    hf_token = os.getenv("HF_TOKEN")
 
     logger.info("\n🚀 Checking HuggingFace Spaces Eligibility")
 
@@ -138,6 +140,7 @@ def check_spaces_eligibility():
 
     except Exception as e:
         logger.error(f"❌ Error: {e}")
+
 
 if __name__ == "__main__":
     check_hf_quota()

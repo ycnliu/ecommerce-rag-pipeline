@@ -1,6 +1,7 @@
 """
 Evaluation utilities for vector database performance.
 """
+
 from typing import Callable, List, Optional, Dict, Any
 import numpy as np
 from loguru import logger
@@ -25,7 +26,7 @@ class VectorDBEvaluator:
         k: int,
         embeddings: np.ndarray,
         ground_truth_fn: Callable[[int], set],
-        exclude_self: bool = True
+        exclude_self: bool = True,
     ) -> float:
         """
         Calculate recall@k metric.
@@ -50,13 +51,17 @@ class VectorDBEvaluator:
 
             # Perform search
             query_emb = embeddings[i].reshape(1, -1)
-            metadata_results, _ = self.vector_db.search(query_emb, k + (1 if exclude_self else 0))
+            metadata_results, _ = self.vector_db.search(
+                query_emb, k + (1 if exclude_self else 0)
+            )
 
             # Convert metadata results back to indices
             # Note: This assumes metadata has an index or we track it separately
             retrieved_indices = set()
             for j, meta in enumerate(metadata_results):
-                if exclude_self and j == 0:  # Skip first result if it's the query itself
+                if (
+                    exclude_self and j == 0
+                ):  # Skip first result if it's the query itself
                     continue
                 # In a real implementation, you'd need to map metadata back to indices
                 # For now, we'll assume the indices match the order
@@ -71,10 +76,7 @@ class VectorDBEvaluator:
         return hits / total if total > 0 else 0.0
 
     def evaluate_search_latency(
-        self,
-        query_embeddings: np.ndarray,
-        k: int = 10,
-        num_iterations: int = 100
+        self, query_embeddings: np.ndarray, k: int = 10, num_iterations: int = 100
     ) -> Dict[str, float]:
         """
         Evaluate search latency performance.
@@ -111,7 +113,7 @@ class VectorDBEvaluator:
             "p99_latency_ms": float(np.percentile(latencies, 99)),
             "min_latency_ms": float(np.min(latencies)),
             "max_latency_ms": float(np.max(latencies)),
-            "std_latency_ms": float(np.std(latencies))
+            "std_latency_ms": float(np.std(latencies)),
         }
 
     def evaluate_memory_usage(self) -> Dict[str, Any]:
@@ -133,7 +135,11 @@ class VectorDBEvaluator:
             "process_memory_mb": memory_info.rss / (1024 * 1024),
             "index_memory_mb": stats.memory_usage_mb,
             "total_vectors": stats.total_vectors,
-            "memory_per_vector_kb": (memory_info.rss / (1024 * stats.total_vectors)) if stats.total_vectors > 0 else 0
+            "memory_per_vector_kb": (
+                (memory_info.rss / (1024 * stats.total_vectors))
+                if stats.total_vectors > 0
+                else 0
+            ),
         }
 
     def compare_index_types(
@@ -142,7 +148,7 @@ class VectorDBEvaluator:
         metadata: List[Any],
         query_embeddings: np.ndarray,
         index_configs: List[Dict[str, Any]],
-        k: int = 10
+        k: int = 10,
     ) -> Dict[str, Dict[str, Any]]:
         """
         Compare different index configurations.
@@ -165,13 +171,11 @@ class VectorDBEvaluator:
 
             try:
                 # Create and populate index
-                vector_db = FAISSVectorDB(
-                    dimension=embeddings.shape[1],
-                    **config
-                )
+                vector_db = FAISSVectorDB(dimension=embeddings.shape[1], **config)
 
                 # Measure indexing time
                 import time
+
                 start_time = time.time()
                 vector_db.add_vectors(embeddings, metadata)
                 indexing_time = time.time() - start_time
@@ -186,7 +190,7 @@ class VectorDBEvaluator:
                     "indexing_time_seconds": indexing_time,
                     "latency_stats": latency_stats,
                     "memory_stats": memory_stats,
-                    "index_stats": vector_db.get_stats().dict()
+                    "index_stats": vector_db.get_stats().dict(),
                 }
 
             except Exception as e:
@@ -200,7 +204,7 @@ class VectorDBEvaluator:
         embeddings: np.ndarray,
         query_embeddings: np.ndarray,
         ground_truth_fn: Optional[Callable[[int], set]] = None,
-        k_values: List[int] = [1, 5, 10, 20]
+        k_values: List[int] = [1, 5, 10, 20],
     ) -> Dict[str, Any]:
         """
         Run comprehensive evaluation of the vector database.
@@ -216,7 +220,7 @@ class VectorDBEvaluator:
         """
         results = {
             "index_stats": self.vector_db.get_stats().dict(),
-            "memory_stats": self.evaluate_memory_usage()
+            "memory_stats": self.evaluate_memory_usage(),
         }
 
         # Evaluate recall if ground truth function provided

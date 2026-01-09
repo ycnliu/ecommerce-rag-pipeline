@@ -5,11 +5,13 @@ Test OpenAI API integration with the provided key.
 import os
 import sys
 import time
-sys.path.append('src')
+
+sys.path.append("src")
 
 from dotenv import load_dotenv
 from src.rag.llm_client import create_llm_client
 from loguru import logger
+
 
 def test_openai_integration():
     """Test OpenAI API with the provided key."""
@@ -17,7 +19,7 @@ def test_openai_integration():
     # Load environment variables
     load_dotenv()
 
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
         logger.error("No OPENAI_API_KEY found in environment")
         return
@@ -27,9 +29,9 @@ def test_openai_integration():
 
     # Test different OpenAI models
     test_models = [
-        "gpt-3.5-turbo",      # Most cost-effective
-        "gpt-3.5-turbo-0125", # Latest version
-        "gpt-4o-mini"         # If available in your tier
+        "gpt-3.5-turbo",  # Most cost-effective
+        "gpt-3.5-turbo-0125",  # Latest version
+        "gpt-4o-mini",  # If available in your tier
     ]
 
     # E-commerce specific test prompts
@@ -53,12 +55,12 @@ Search Results:
    Features: Hi-Res Audio, 40-hour playtime, memory foam ear cups
    Category: Electronics
 
-Please provide a detailed recommendation considering features, price, and value."""
+Please provide a detailed recommendation considering features, price, and value.""",
         },
         {
             "title": "Simple Query",
-            "prompt": "What are the key features to look for when buying wireless headphones?"
-        }
+            "prompt": "What are the key features to look for when buying wireless headphones?",
+        },
     ]
 
     for model_name in test_models:
@@ -67,9 +69,7 @@ Please provide a detailed recommendation considering features, price, and value.
         try:
             # Create OpenAI client
             llm_client = create_llm_client(
-                provider="openai",
-                model_name=model_name,
-                api_token=openai_key
+                provider="openai", model_name=model_name, api_token=openai_key
             )
 
             model_info = llm_client.get_model_info()
@@ -82,9 +82,7 @@ Please provide a detailed recommendation considering features, price, and value.
             # Generate response
             start_time = time.time()
             response = llm_client.generate_response(
-                prompt=test_case["prompt"],
-                max_tokens=200,
-                temperature=0.3
+                prompt=test_case["prompt"], max_tokens=200, temperature=0.3
             )
             generation_time = time.time() - start_time
 
@@ -102,16 +100,14 @@ Please provide a detailed recommendation considering features, price, and value.
             logger.error(f"❌ Failed with {model_name}: {e}")
 
     # Test full e-commerce pipeline with OpenAI
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("🎯 FULL E-COMMERCE RAG WITH OPENAI")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     try:
         # Use the best available model
         openai_client = create_llm_client(
-            provider="openai",
-            model_name="gpt-3.5-turbo",
-            api_token=openai_key
+            provider="openai", model_name="gpt-3.5-turbo", api_token=openai_key
         )
 
         for i, test_case in enumerate(test_prompts, 1):
@@ -119,9 +115,7 @@ Please provide a detailed recommendation considering features, price, and value.
 
             start_time = time.time()
             response = openai_client.generate_response(
-                prompt=test_case["prompt"],
-                max_tokens=250,
-                temperature=0.3
+                prompt=test_case["prompt"], max_tokens=250, temperature=0.3
             )
             generation_time = time.time() - start_time
 
@@ -137,9 +131,9 @@ Please provide a detailed recommendation considering features, price, and value.
         logger.error(f"❌ Full pipeline test failed: {e}")
 
     # Show usage summary
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("📊 OPENAI INTEGRATION SUMMARY")
-    logger.info("="*60)
+    logger.info("=" * 60)
 
     print("\n✅ OpenAI API Setup Complete!")
     print(f"🔑 API Key: {openai_key[:14]}...{openai_key[-4:]}")
@@ -161,6 +155,7 @@ Please provide a detailed recommendation considering features, price, and value.
     print("   LLM_PROVIDER=openai")
     print("   LLM_MODEL_NAME=gpt-3.5-turbo")
     print("   OPENAI_API_KEY=[securely stored in .env]")
+
 
 if __name__ == "__main__":
     test_openai_integration()

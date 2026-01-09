@@ -1,6 +1,7 @@
 """
 Tests for vector database functionality.
 """
+
 import pytest
 import numpy as np
 import tempfile
@@ -54,12 +55,14 @@ class TestFAISSVectorDB:
     def test_add_vectors_dimension_mismatch(self, sample_product_metadata):
         """Test adding vectors with wrong dimension."""
         db = FAISSVectorDB(dimension=128)
-        wrong_embeddings = np.random.rand(2, 256).astype('float32')
+        wrong_embeddings = np.random.rand(2, 256).astype("float32")
 
         with pytest.raises(ValueError, match="Embedding dimension"):
             db.add_vectors(wrong_embeddings, sample_product_metadata[:2])
 
-    def test_add_vectors_metadata_mismatch(self, sample_embeddings, sample_product_metadata):
+    def test_add_vectors_metadata_mismatch(
+        self, sample_embeddings, sample_product_metadata
+    ):
         """Test adding vectors with mismatched metadata count."""
         db = FAISSVectorDB(dimension=512)
 
@@ -69,7 +72,7 @@ class TestFAISSVectorDB:
     def test_search_empty_index(self):
         """Test searching in empty index."""
         db = FAISSVectorDB(dimension=512)
-        query = np.random.rand(512).astype('float32')
+        query = np.random.rand(512).astype("float32")
 
         results, distances = db.search(query, k=5)
 
@@ -134,7 +137,9 @@ class TestFAISSVectorDB:
         """Test getting index statistics."""
         db = FAISSVectorDB(dimension=512)
         embeddings = sample_embeddings[:3]
-        metadata = sample_product_metadata[:2] + [sample_product_metadata[0]]  # Repeat to get 3
+        metadata = sample_product_metadata[:2] + [
+            sample_product_metadata[0]
+        ]  # Repeat to get 3
 
         db.add_vectors(embeddings, metadata)
 
@@ -162,7 +167,7 @@ class TestFAISSVectorDB:
         db = FAISSVectorDB(dimension=128, index_type="ivf", nlist=10)
 
         # Generate enough data for training
-        embeddings = np.random.rand(50, 128).astype('float32')
+        embeddings = np.random.rand(50, 128).astype("float32")
         metadata = [
             ProductMetadata(
                 image_url=f"https://example.com/image{i}.jpg",
@@ -173,8 +178,9 @@ class TestFAISSVectorDB:
                 product_specification="Test spec",
                 technical_details="Test details",
                 is_amazon_seller="Y",
-                combined_text=f"Product {i}"
-            ) for i in range(50)
+                combined_text=f"Product {i}",
+            )
+            for i in range(50)
         ]
 
         db.add_vectors(embeddings, metadata, train_if_needed=True)
@@ -186,7 +192,7 @@ class TestFAISSVectorDB:
         """Test removing vectors from flat index."""
         db = FAISSVectorDB(dimension=128, index_type="flat")
 
-        embeddings = np.random.rand(5, 128).astype('float32')
+        embeddings = np.random.rand(5, 128).astype("float32")
         metadata = [
             ProductMetadata(
                 image_url=f"https://example.com/image{i}.jpg",
@@ -197,8 +203,9 @@ class TestFAISSVectorDB:
                 product_specification="Test spec",
                 technical_details="Test details",
                 is_amazon_seller="Y",
-                combined_text=f"Product {i}"
-            ) for i in range(5)
+                combined_text=f"Product {i}",
+            )
+            for i in range(5)
         ]
 
         db.add_vectors(embeddings, metadata)
@@ -241,22 +248,26 @@ class TestVectorDBEvaluator:
                 product_specification="Test spec",
                 technical_details="Test details",
                 is_amazon_seller="Y",
-                combined_text=f"Product {i}"
-            ) for i in range(10)
+                combined_text=f"Product {i}",
+            )
+            for i in range(10)
         ]
 
         db.add_vectors(embeddings, metadata)
 
         evaluator = VectorDBEvaluator(db)
         latency_stats = evaluator.evaluate_search_latency(
-            embeddings[:3],
-            k=5,
-            num_iterations=5
+            embeddings[:3], k=5, num_iterations=5
         )
 
         expected_keys = [
-            "mean_latency_ms", "median_latency_ms", "p95_latency_ms",
-            "p99_latency_ms", "min_latency_ms", "max_latency_ms", "std_latency_ms"
+            "mean_latency_ms",
+            "median_latency_ms",
+            "p95_latency_ms",
+            "p99_latency_ms",
+            "min_latency_ms",
+            "max_latency_ms",
+            "std_latency_ms",
         ]
 
         for key in expected_keys:
@@ -278,8 +289,9 @@ class TestVectorDBEvaluator:
                 product_specification="Test spec",
                 technical_details="Test details",
                 is_amazon_seller="Y",
-                combined_text=f"Product {i}"
-            ) for i in range(5)
+                combined_text=f"Product {i}",
+            )
+            for i in range(5)
         ]
 
         db.add_vectors(embeddings, metadata)
@@ -287,9 +299,7 @@ class TestVectorDBEvaluator:
         evaluator = VectorDBEvaluator(db)
         memory_stats = evaluator.evaluate_memory_usage()
 
-        expected_keys = [
-            "process_memory_mb", "total_vectors", "memory_per_vector_kb"
-        ]
+        expected_keys = ["process_memory_mb", "total_vectors", "memory_per_vector_kb"]
 
         for key in expected_keys:
             assert key in memory_stats
@@ -308,8 +318,9 @@ class TestVectorDBEvaluator:
                 product_specification="Test spec",
                 technical_details="Test details",
                 is_amazon_seller="Y",
-                combined_text=f"Product {i}"
-            ) for i in range(20)
+                combined_text=f"Product {i}",
+            )
+            for i in range(20)
         ]
 
         # Create dummy evaluator (we'll create new ones in the method)
@@ -318,14 +329,11 @@ class TestVectorDBEvaluator:
 
         configs = [
             {"index_type": "flat", "metric": "l2"},
-            {"index_type": "flat", "metric": "ip"}
+            {"index_type": "flat", "metric": "ip"},
         ]
 
         results = evaluator.compare_index_types(
-            embeddings,
-            metadata,
-            embeddings[:3],  # query embeddings
-            configs
+            embeddings, metadata, embeddings[:3], configs  # query embeddings
         )
 
         assert len(results) == 2

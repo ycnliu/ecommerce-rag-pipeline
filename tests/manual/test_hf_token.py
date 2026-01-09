@@ -4,11 +4,13 @@ Test Hugging Face API integration with the provided token.
 """
 import os
 import sys
-sys.path.append('src')
+
+sys.path.append("src")
 
 from dotenv import load_dotenv
 from src.rag.llm_client import create_llm_client
 from loguru import logger
+
 
 def test_huggingface_integration():
     """Test Hugging Face API with the provided token."""
@@ -16,7 +18,7 @@ def test_huggingface_integration():
     # Load environment variables
     load_dotenv()
 
-    hf_token = os.getenv('HF_TOKEN')
+    hf_token = os.getenv("HF_TOKEN")
     if not hf_token:
         logger.error("No HF_TOKEN found in environment")
         return
@@ -28,7 +30,7 @@ def test_huggingface_integration():
     test_models = [
         "microsoft/DialoGPT-medium",
         "facebook/blenderbot-400M-distill",
-        "google/flan-t5-small"
+        "google/flan-t5-small",
     ]
 
     test_prompt = """User query: wireless bluetooth headphones under $100
@@ -46,9 +48,7 @@ Provide a helpful response:"""
         try:
             # Create HF client
             llm_client = create_llm_client(
-                provider="free",
-                model_name=model_name,
-                api_token=hf_token
+                provider="free", model_name=model_name, api_token=hf_token
             )
 
             model_info = llm_client.get_model_info()
@@ -56,11 +56,10 @@ Provide a helpful response:"""
 
             # Generate response
             import time
+
             start_time = time.time()
             response = llm_client.generate_response(
-                prompt=test_prompt,
-                max_tokens=100,
-                temperature=0.7
+                prompt=test_prompt, max_tokens=100, temperature=0.7
             )
             generation_time = time.time() - start_time
 
@@ -71,6 +70,7 @@ Provide a helpful response:"""
             logger.error(f"❌ Failed with {model_name}: {e}")
 
     logger.info("\n🎉 Hugging Face API testing completed!")
+
 
 if __name__ == "__main__":
     test_huggingface_integration()

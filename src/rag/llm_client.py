@@ -1,17 +1,21 @@
 """
 LLM client for generating responses in the RAG pipeline.
 """
+
 from typing import Optional, Dict, Any, List
 from abc import ABC, abstractmethod
 import requests
 import json
+
 try:
     from huggingface_hub import InferenceClient
+
     HF_AVAILABLE = True
 except ImportError:
     HF_AVAILABLE = False
 try:
     from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
@@ -29,7 +33,7 @@ class BaseLLMClient(ABC):
         prompt: str,
         max_tokens: int = 300,
         temperature: float = 0.1,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response from prompt."""
         pass
@@ -43,12 +47,7 @@ class BaseLLMClient(ABC):
 class HuggingFaceLLMClient(BaseLLMClient):
     """Hugging Face Inference API client."""
 
-    def __init__(
-        self,
-        model_name: str,
-        api_token: str,
-        base_url: Optional[str] = None
-    ):
+    def __init__(self, model_name: str, api_token: str, base_url: Optional[str] = None):
         """
         Initialize Hugging Face LLM client.
 
@@ -63,9 +62,7 @@ class HuggingFaceLLMClient(BaseLLMClient):
 
         try:
             self.client = InferenceClient(
-                model=model_name,
-                token=api_token,
-                base_url=base_url
+                model=model_name, token=api_token, base_url=base_url
             )
             logger.info(f"Initialized Hugging Face client for model: {model_name}")
         except Exception as e:
@@ -77,7 +74,7 @@ class HuggingFaceLLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 300,
         temperature: float = 0.1,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """
         Generate response using Hugging Face Inference API.
@@ -99,7 +96,7 @@ class HuggingFaceLLMClient(BaseLLMClient):
                 prompt=prompt,
                 max_new_tokens=max_tokens,
                 temperature=temperature,
-                stop=stop_sequences or []
+                stop=stop_sequences or [],
             )
 
             return response.strip()
@@ -113,7 +110,7 @@ class HuggingFaceLLMClient(BaseLLMClient):
         return {
             "model_name": self.model_name,
             "provider": "huggingface",
-            "base_url": self.base_url
+            "base_url": self.base_url,
         }
 
 
@@ -138,36 +135,28 @@ class OpenAILLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 300,
         temperature: float = 0.1,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response using OpenAI API."""
         try:
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
 
             payload = {
                 "model": self.model_name,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
+                "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": max_tokens,
                 "temperature": temperature,
-                "stream": False
+                "stream": False,
             }
 
             if stop_sequences:
                 payload["stop"] = stop_sequences
 
             response = requests.post(
-                self.base_url,
-                headers=headers,
-                json=payload,
-                timeout=30
+                self.base_url, headers=headers, json=payload, timeout=30
             )
 
             if response.status_code == 200:
@@ -199,7 +188,7 @@ class OpenAILLMClient(BaseLLMClient):
         return {
             "model_name": self.model_name,
             "provider": "openai",
-            "base_url": self.base_url
+            "base_url": self.base_url,
         }
 
 
@@ -210,7 +199,7 @@ class FreeLLMClient(BaseLLMClient):
         self,
         model_name: str = "microsoft/DialoGPT-medium",
         api_token: Optional[str] = None,
-        device: str = "auto"
+        device: str = "auto",
     ):
         """Initialize free LLM client."""
         self.model_name = model_name
@@ -234,7 +223,7 @@ class FreeLLMClient(BaseLLMClient):
                     "text-generation",
                     model=model_name,
                     device=0 if device == "cuda" else -1,
-                    torch_dtype="auto"
+                    torch_dtype="auto",
                 )
                 self.client_type = "transformers"
                 logger.info(f"Using local transformers pipeline: {model_name}")
@@ -250,7 +239,7 @@ class FreeLLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 200,
         temperature: float = 0.7,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response using available free LLM."""
         try:
@@ -259,7 +248,7 @@ class FreeLLMClient(BaseLLMClient):
                     prompt,
                     max_new_tokens=max_tokens,
                     temperature=temperature,
-                    return_full_text=False
+                    return_full_text=False,
                 )
                 return response.strip()
 
@@ -269,9 +258,9 @@ class FreeLLMClient(BaseLLMClient):
                     max_new_tokens=max_tokens,
                     temperature=temperature,
                     do_sample=True,
-                    pad_token_id=self.client.tokenizer.eos_token_id
+                    pad_token_id=self.client.tokenizer.eos_token_id,
                 )
-                response = outputs[0]['generated_text'][len(prompt):].strip()
+                response = outputs[0]["generated_text"][len(prompt) :].strip()
 
                 # Apply stop sequences
                 if stop_sequences:
@@ -294,15 +283,21 @@ class FreeLLMClient(BaseLLMClient):
         """Generate fallback response when no LLM is available."""
         # Extract search results from prompt for basic response
         if "search results:" in prompt.lower():
-            return ("Based on the search results, I found several relevant products that match your query. "
-                   "Please review the products listed above for detailed information including prices, "
-                   "specifications, and purchasing links.")
+            return (
+                "Based on the search results, I found several relevant products that match your query. "
+                "Please review the products listed above for detailed information including prices, "
+                "specifications, and purchasing links."
+            )
         elif "product" in prompt.lower():
-            return ("Here are some product recommendations based on your search. "
-                   "Each result includes product details, pricing, and direct links to purchase.")
+            return (
+                "Here are some product recommendations based on your search. "
+                "Each result includes product details, pricing, and direct links to purchase."
+            )
         else:
-            return ("I found some relevant results for your query. "
-                   "Please check the search results above for more information.")
+            return (
+                "I found some relevant results for your query. "
+                "Please check the search results above for more information."
+            )
 
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information."""
@@ -310,7 +305,7 @@ class FreeLLMClient(BaseLLMClient):
             "model_name": self.model_name,
             "client_type": self.client_type,
             "device": self.device,
-            "available": self.client is not None
+            "available": self.client is not None,
         }
 
 
@@ -321,7 +316,7 @@ class OllamaLLMClient(BaseLLMClient):
         self,
         model_name: str = "llama2",
         base_url: str = "http://localhost:11434",
-        **kwargs
+        **kwargs,
     ):
         """Initialize Ollama client."""
         self.model_name = model_name
@@ -339,7 +334,9 @@ class OllamaLLMClient(BaseLLMClient):
                     logger.info(f"Ollama model {self.model_name} is available")
                     return True
                 else:
-                    logger.warning(f"Ollama model {self.model_name} not found. Available: {model_names}")
+                    logger.warning(
+                        f"Ollama model {self.model_name} not found. Available: {model_names}"
+                    )
             return False
         except Exception as e:
             logger.warning(f"Ollama not available: {e}")
@@ -350,7 +347,7 @@ class OllamaLLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 200,
         temperature: float = 0.7,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response using Ollama."""
         if not self.available:
@@ -361,19 +358,14 @@ class OllamaLLMClient(BaseLLMClient):
                 "model": self.model_name,
                 "prompt": prompt,
                 "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens
-                }
+                "options": {"temperature": temperature, "num_predict": max_tokens},
             }
 
             if stop_sequences:
                 payload["options"]["stop"] = stop_sequences
 
             response = requests.post(
-                f"{self.base_url}/api/generate",
-                json=payload,
-                timeout=30
+                f"{self.base_url}/api/generate", json=payload, timeout=30
             )
 
             if response.status_code == 200:
@@ -392,7 +384,7 @@ class OllamaLLMClient(BaseLLMClient):
             "model_name": self.model_name,
             "base_url": self.base_url,
             "available": self.available,
-            "type": "ollama"
+            "type": "ollama",
         }
 
 
@@ -404,7 +396,7 @@ class OpenSourceLLMClient(BaseLLMClient):
         provider: str = "groq",  # groq, together, replicate
         model_name: str = "llama2-70b-4096",
         api_token: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         """Initialize open-source LLM client."""
         self.provider = provider.lower()
@@ -415,12 +407,18 @@ class OpenSourceLLMClient(BaseLLMClient):
         self.configs = {
             "groq": {
                 "base_url": "https://api.groq.com/openai/v1/chat/completions",
-                "headers": {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
+                "headers": {
+                    "Authorization": f"Bearer {api_token}",
+                    "Content-Type": "application/json",
+                },
             },
             "together": {
                 "base_url": "https://api.together.xyz/v1/chat/completions",
-                "headers": {"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"}
-            }
+                "headers": {
+                    "Authorization": f"Bearer {api_token}",
+                    "Content-Type": "application/json",
+                },
+            },
         }
 
     def generate_response(
@@ -428,7 +426,7 @@ class OpenSourceLLMClient(BaseLLMClient):
         prompt: str,
         max_tokens: int = 200,
         temperature: float = 0.7,
-        stop_sequences: Optional[List[str]] = None
+        stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response using open-source LLM API."""
         if self.provider not in self.configs:
@@ -441,17 +439,14 @@ class OpenSourceLLMClient(BaseLLMClient):
                 "model": self.model_name,
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": max_tokens,
-                "temperature": temperature
+                "temperature": temperature,
             }
 
             if stop_sequences:
                 payload["stop"] = stop_sequences
 
             response = requests.post(
-                config["base_url"],
-                headers=config["headers"],
-                json=payload,
-                timeout=30
+                config["base_url"], headers=config["headers"], json=payload, timeout=30
             )
 
             if response.status_code == 200:
@@ -470,15 +465,12 @@ class OpenSourceLLMClient(BaseLLMClient):
         return {
             "provider": self.provider,
             "model_name": self.model_name,
-            "type": "open_source_api"
+            "type": "open_source_api",
         }
 
 
 def create_llm_client(
-    provider: str,
-    model_name: str,
-    api_token: str,
-    **kwargs
+    provider: str, model_name: str, api_token: str, **kwargs
 ) -> BaseLLMClient:
     """
     Factory function to create LLM clients.
@@ -497,39 +489,21 @@ def create_llm_client(
     """
     if provider.lower() == "huggingface":
         return HuggingFaceLLMClient(
-            model_name=model_name,
-            api_token=api_token,
-            **kwargs
+            model_name=model_name, api_token=api_token, **kwargs
         )
     elif provider.lower() == "openai":
-        return OpenAILLMClient(
-            api_key=api_token,
-            model_name=model_name,
-            **kwargs
-        )
+        return OpenAILLMClient(api_key=api_token, model_name=model_name, **kwargs)
     elif provider.lower() == "free":
-        return FreeLLMClient(
-            model_name=model_name,
-            api_token=api_token,
-            **kwargs
-        )
+        return FreeLLMClient(model_name=model_name, api_token=api_token, **kwargs)
     elif provider.lower() == "ollama":
-        return OllamaLLMClient(
-            model_name=model_name,
-            **kwargs
-        )
+        return OllamaLLMClient(model_name=model_name, **kwargs)
     elif provider.lower() in ["groq", "together", "replicate"]:
         return OpenSourceLLMClient(
-            provider=provider,
-            model_name=model_name,
-            api_token=api_token,
-            **kwargs
+            provider=provider, model_name=model_name, api_token=api_token, **kwargs
         )
     else:
         # Default to free LLM client for unknown providers
         logger.warning(f"Unknown provider '{provider}', using free LLM client")
         return FreeLLMClient(
-            model_name="microsoft/DialoGPT-medium",
-            api_token=api_token,
-            **kwargs
+            model_name="microsoft/DialoGPT-medium", api_token=api_token, **kwargs
         )

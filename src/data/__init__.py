@@ -1,6 +1,7 @@
 """
 Data processing modules for e-commerce RAG pipeline.
 """
+
 from .models import (
     ProductMetadata,
     QueryRequest,
@@ -9,7 +10,7 @@ from .models import (
     EmbeddingRequest,
     EmbeddingResponse,
     IndexStats,
-    HealthCheck
+    HealthCheck,
 )
 from .processor import DataProcessor, TextProcessor, GroundTruthGenerator
 

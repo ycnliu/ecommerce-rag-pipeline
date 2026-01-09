@@ -1,6 +1,7 @@
 """
 Evaluation utilities for RAG pipeline performance.
 """
+
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
@@ -23,7 +24,7 @@ class RAGEvaluator:
             rag_pipeline: RAG pipeline to evaluate
         """
         self.rag_pipeline = rag_pipeline
-        self.rouge_scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+        self.rouge_scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
     def evaluate_bleu(self, reference: str, generated: str) -> float:
         """
@@ -58,16 +59,13 @@ class RAGEvaluator:
         """
         try:
             score = self.rouge_scorer.score(reference, generated)
-            return score['rougeL'].fmeasure
+            return score["rougeL"].fmeasure
         except Exception as e:
             logger.error(f"ROUGE calculation failed: {e}")
             return 0.0
 
     def evaluate_retrieval_accuracy(
-        self,
-        test_queries: List[str],
-        ground_truth_indices: List[List[int]],
-        k: int = 5
+        self, test_queries: List[str], ground_truth_indices: List[List[int]], k: int = 5
     ) -> Dict[str, float]:
         """
         Evaluate retrieval accuracy using ground truth.
@@ -91,9 +89,7 @@ class RAGEvaluator:
             try:
                 # Get retrieval results
                 response = self.rag_pipeline.query(
-                    text_query=query,
-                    k=k,
-                    generate_response=False
+                    text_query=query, k=k, generate_response=False
                 )
 
                 # Extract retrieved indices (assuming we can map metadata back to indices)
@@ -138,14 +134,14 @@ class RAGEvaluator:
             "f1": np.mean(f1_scores),
             "precision_std": np.std(precision_scores),
             "recall_std": np.std(recall_scores),
-            "f1_std": np.std(f1_scores)
+            "f1_std": np.std(f1_scores),
         }
 
     def evaluate_response_quality(
         self,
         test_queries: List[str],
         reference_responses: List[str],
-        llm_params: Optional[Dict[str, Any]] = None
+        llm_params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, float]:
         """
         Evaluate response quality using BLEU and ROUGE metrics.
@@ -159,7 +155,9 @@ class RAGEvaluator:
             Dictionary with quality metrics
         """
         if len(test_queries) != len(reference_responses):
-            raise ValueError("Number of queries must match number of reference responses")
+            raise ValueError(
+                "Number of queries must match number of reference responses"
+            )
 
         bleu_scores = []
         rouge_scores = []
@@ -170,7 +168,7 @@ class RAGEvaluator:
                 response = self.rag_pipeline.query(
                     text_query=query,
                     generate_response=True,
-                    llm_params=llm_params or {}
+                    llm_params=llm_params or {},
                 )
 
                 generated = response.generated_response or ""
@@ -182,7 +180,9 @@ class RAGEvaluator:
                 bleu_scores.append(bleu_score)
                 rouge_scores.append(rouge_score)
 
-                logger.debug(f"Query: {query[:50]}... | BLEU: {bleu_score:.3f} | ROUGE: {rouge_score:.3f}")
+                logger.debug(
+                    f"Query: {query[:50]}... | BLEU: {bleu_score:.3f} | ROUGE: {rouge_score:.3f}"
+                )
 
             except Exception as e:
                 logger.error(f"Error evaluating response for query '{query}': {e}")
@@ -195,14 +195,11 @@ class RAGEvaluator:
             "rouge_mean": np.mean(rouge_scores),
             "rouge_std": np.std(rouge_scores),
             "bleu_scores": bleu_scores,
-            "rouge_scores": rouge_scores
+            "rouge_scores": rouge_scores,
         }
 
     def evaluate_latency(
-        self,
-        test_queries: List[str],
-        num_iterations: int = 10,
-        k: int = 5
+        self, test_queries: List[str], num_iterations: int = 10, k: int = 5
     ) -> Dict[str, float]:
         """
         Evaluate pipeline latency.
@@ -221,11 +218,11 @@ class RAGEvaluator:
             for query in test_queries:
                 try:
                     response = self.rag_pipeline.query(
-                        text_query=query,
-                        k=k,
-                        generate_response=True
+                        text_query=query, k=k, generate_response=True
                     )
-                    latencies.append(response.processing_time * 1000)  # Convert to milliseconds
+                    latencies.append(
+                        response.processing_time * 1000
+                    )  # Convert to milliseconds
 
                 except Exception as e:
                     logger.error(f"Error measuring latency for query '{query}': {e}")
@@ -242,7 +239,7 @@ class RAGEvaluator:
             "p99_latency_ms": float(np.percentile(latencies, 99)),
             "min_latency_ms": float(np.min(latencies)),
             "max_latency_ms": float(np.max(latencies)),
-            "std_latency_ms": float(np.std(latencies))
+            "std_latency_ms": float(np.std(latencies)),
         }
 
     def evaluate_end_to_end(
@@ -251,7 +248,7 @@ class RAGEvaluator:
         reference_responses: Optional[List[str]] = None,
         ground_truth_indices: Optional[List[List[int]]] = None,
         k: int = 5,
-        num_latency_runs: int = 5
+        num_latency_runs: int = 5,
     ) -> Dict[str, Any]:
         """
         Run comprehensive end-to-end evaluation.
@@ -272,34 +269,31 @@ class RAGEvaluator:
             "evaluation_config": {
                 "num_queries": len(test_queries),
                 "k": k,
-                "num_latency_runs": num_latency_runs
+                "num_latency_runs": num_latency_runs,
             },
-            "pipeline_stats": self.rag_pipeline.get_pipeline_stats()
+            "pipeline_stats": self.rag_pipeline.get_pipeline_stats(),
         }
 
         # Evaluate latency
         logger.info("Evaluating latency...")
         results["latency"] = self.evaluate_latency(
-            test_queries[:min(5, len(test_queries))],  # Use subset for latency
+            test_queries[: min(5, len(test_queries))],  # Use subset for latency
             num_latency_runs,
-            k
+            k,
         )
 
         # Evaluate response quality if references provided
         if reference_responses:
             logger.info("Evaluating response quality...")
             results["response_quality"] = self.evaluate_response_quality(
-                test_queries,
-                reference_responses
+                test_queries, reference_responses
             )
 
         # Evaluate retrieval accuracy if ground truth provided
         if ground_truth_indices:
             logger.info("Evaluating retrieval accuracy...")
             results["retrieval_accuracy"] = self.evaluate_retrieval_accuracy(
-                test_queries,
-                ground_truth_indices,
-                k
+                test_queries, ground_truth_indices, k
             )
 
         logger.info("End-to-end evaluation completed")
@@ -309,7 +303,7 @@ class RAGEvaluator:
         self,
         test_queries: List[str],
         ablation_configs: List[Dict[str, Any]],
-        reference_responses: Optional[List[str]] = None
+        reference_responses: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Run ablation study comparing different pipeline configurations.
@@ -322,7 +316,9 @@ class RAGEvaluator:
         Returns:
             Ablation study results
         """
-        logger.info(f"Running ablation study with {len(ablation_configs)} configurations")
+        logger.info(
+            f"Running ablation study with {len(ablation_configs)} configurations"
+        )
 
         results = {}
 
@@ -337,19 +333,15 @@ class RAGEvaluator:
                 # Evaluate this configuration
                 if reference_responses:
                     config_results = self.evaluate_response_quality(
-                        test_queries[:min(10, len(test_queries))],  # Use subset
-                        reference_responses[:min(10, len(reference_responses))]
+                        test_queries[: min(10, len(test_queries))],  # Use subset
+                        reference_responses[: min(10, len(reference_responses))],
                     )
                 else:
                     config_results = self.evaluate_latency(
-                        test_queries[:min(5, len(test_queries))],
-                        num_iterations=3
+                        test_queries[: min(5, len(test_queries))], num_iterations=3
                     )
 
-                results[config_name] = {
-                    "config": config,
-                    "results": config_results
-                }
+                results[config_name] = {"config": config, "results": config_results}
 
             except Exception as e:
                 logger.error(f"Error evaluating configuration {config_name}: {e}")
