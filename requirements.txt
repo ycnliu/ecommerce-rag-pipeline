@@ -16,6 +16,7 @@ sentence-transformers>=2.2.0
 faiss-cpu>=1.7.0
 Pillow>=9.0.0
 scikit-learn>=1.0.0
+psutil>=5.9.0
 
 # Development and validation
 pydantic>=2.0.0
