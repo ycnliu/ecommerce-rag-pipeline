@@ -11,8 +11,8 @@ on:
 env:
   PYTHON_VERSION: '3.9'
   HF_USERNAME: YCHL
-  HF_SPACE_PROD: rag-shopping-chatbot-pipeline
-  HF_SPACE_PREVIEW: rag-shopping-chatbot-preview
+  HF_SPACE_PROD: amazon-chatbot-rag-pipeline
+  HF_SPACE_PREVIEW: amazon-chatbot-rag-preview
 
 jobs:
   build-artifacts:
