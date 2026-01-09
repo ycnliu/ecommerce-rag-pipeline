@@ -125,3 +125,6 @@ flagged/
 # Space deployment artifacts (built by CI)
 space/demo_products.csv
 space/manifest.json
+
+# SSH keys (local only)
+ssh.txt*

@@ -3,11 +3,12 @@
 Lightweight HuggingFace Spaces demo for E-commerce RAG Pipeline.
 This is a demo-only version with minimal dependencies.
 """
-import gradio as gr
-import os
-import json
 import csv
-from typing import List, Dict
+import json
+import os
+from typing import Dict, List
+
+import gradio as gr
 
 
 # Load demo products

@@ -3,13 +3,14 @@ Embedding service using CLIP model for text and image embeddings.
 """
 
 import io
-from typing import Optional, Union, List
-from PIL import Image
-import torch
+from typing import List, Optional, Union
+
 import numpy as np
 import requests
-from transformers import CLIPProcessor, CLIPModel
+import torch
 from loguru import logger
+from PIL import Image
+from transformers import CLIPModel, CLIPProcessor
 
 from ..utils.exceptions import EmbeddingError, ModelLoadError
 

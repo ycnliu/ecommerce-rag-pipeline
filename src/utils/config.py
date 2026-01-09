@@ -3,10 +3,11 @@ Configuration management for the e-commerce RAG pipeline.
 """
 
 import os
-from typing import Optional, List
+from pathlib import Path
+from typing import List, Optional
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from pathlib import Path
 
 
 class Config(BaseSettings):

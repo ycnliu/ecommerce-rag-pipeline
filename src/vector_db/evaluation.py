@@ -2,7 +2,8 @@
 Evaluation utilities for vector database performance.
 """
 
-from typing import Callable, List, Optional, Dict, Any
+from typing import Any, Callable, Dict, List, Optional
+
 import numpy as np
 from loguru import logger
 
@@ -123,8 +124,9 @@ class VectorDBEvaluator:
         Returns:
             Dictionary with memory statistics
         """
-        import psutil
         import os
+
+        import psutil
 
         process = psutil.Process(os.getpid())
         memory_info = process.memory_info()

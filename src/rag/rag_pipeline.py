@@ -3,18 +3,19 @@ Main RAG (Retrieval-Augmented Generation) pipeline.
 """
 
 import time
-from typing import List, Optional, Tuple, Union, Dict, Any
-from PIL import Image
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 from loguru import logger
+from PIL import Image
 
-from ..embedding.service import CLIPEmbeddingService
-from ..vector_db.faiss_service import FAISSVectorDB
 from ..data.models import ProductMetadata, QueryRequest, QueryResponse, SearchResult
 from ..data.processor import TextProcessor
+from ..embedding.service import CLIPEmbeddingService
+from ..utils.exceptions import RAGError
+from ..vector_db.faiss_service import FAISSVectorDB
 from .llm_client import BaseLLMClient
 from .prompt_builder import PromptBuilder
-from ..utils.exceptions import RAGError
 
 
 class RAGPipeline:

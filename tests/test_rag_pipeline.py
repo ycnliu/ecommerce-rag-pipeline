@@ -2,14 +2,15 @@
 Tests for RAG pipeline functionality.
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock, patch
 
-from src.rag.rag_pipeline import RAGPipeline
+import numpy as np
+import pytest
+
+from src.data.models import ProductMetadata, QueryRequest, SearchResult
 from src.rag.evaluation import RAGEvaluator
 from src.rag.prompt_builder import PromptBuilder
-from src.data.models import QueryRequest, ProductMetadata, SearchResult
+from src.rag.rag_pipeline import RAGPipeline
 from src.utils.exceptions import RAGError
 
 

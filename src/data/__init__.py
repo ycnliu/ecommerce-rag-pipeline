@@ -3,16 +3,16 @@ Data processing modules for e-commerce RAG pipeline.
 """
 
 from .models import (
+    EmbeddingRequest,
+    EmbeddingResponse,
+    HealthCheck,
+    IndexStats,
     ProductMetadata,
     QueryRequest,
     QueryResponse,
     SearchResult,
-    EmbeddingRequest,
-    EmbeddingResponse,
-    IndexStats,
-    HealthCheck,
 )
-from .processor import DataProcessor, TextProcessor, GroundTruthGenerator
+from .processor import DataProcessor, GroundTruthGenerator, TextProcessor
 
 __all__ = [
     "ProductMetadata",

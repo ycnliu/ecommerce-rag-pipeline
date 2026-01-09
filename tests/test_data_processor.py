@@ -2,12 +2,13 @@
 Tests for data processing functionality.
 """
 
-import pytest
-import pandas as pd
-import tempfile
 import os
+import tempfile
 
-from src.data.processor import DataProcessor, TextProcessor, GroundTruthGenerator
+import pandas as pd
+import pytest
+
+from src.data.processor import DataProcessor, GroundTruthGenerator, TextProcessor
 
 
 class TestDataProcessor:

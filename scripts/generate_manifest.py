@@ -3,10 +3,10 @@
 Generate deployment manifest with metadata and checksums.
 """
 import argparse
-import json
 import hashlib
-from pathlib import Path
+import json
 from datetime import datetime
+from pathlib import Path
 
 
 def calculate_file_hash(file_path: Path) -> str:

@@ -4,18 +4,19 @@ Pytest configuration and fixtures for the e-commerce RAG pipeline.
 
 import os
 import tempfile
-import pytest
-import numpy as np
-from unittest.mock import Mock, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, Mock
 
-from src.utils.config import Config
-from src.embedding.service import CLIPEmbeddingService
-from src.vector_db.faiss_service import FAISSVectorDB
-from src.rag.llm_client import BaseLLMClient
-from src.rag.rag_pipeline import RAGPipeline
+import numpy as np
+import pytest
+
 from src.data.models import ProductMetadata
 from src.data.processor import DataProcessor
+from src.embedding.service import CLIPEmbeddingService
+from src.rag.llm_client import BaseLLMClient
+from src.rag.rag_pipeline import RAGPipeline
+from src.utils.config import Config
+from src.vector_db.faiss_service import FAISSVectorDB
 
 
 @pytest.fixture(scope="session")
@@ -147,6 +148,7 @@ def data_processor():
 def api_client():
     """FastAPI test client."""
     from fastapi.testclient import TestClient
+
     from src.api.main import app
 
     # Override dependencies with mocks

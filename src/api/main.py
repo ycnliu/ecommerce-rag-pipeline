@@ -3,28 +3,28 @@ FastAPI application for the e-commerce RAG pipeline.
 """
 
 import time
-from datetime import datetime
-from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, BackgroundTasks
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
 from ..data.models import (
-    QueryRequest,
-    QueryResponse,
     EmbeddingRequest,
     EmbeddingResponse,
     HealthCheck,
     IndexStats,
+    QueryRequest,
+    QueryResponse,
 )
 from ..rag.rag_pipeline import RAGPipeline
 from ..utils.config import Config
-from ..utils.exceptions import RAGError, EmbeddingError, VectorDBError
-from .dependencies import get_rag_pipeline, get_config
+from ..utils.exceptions import EmbeddingError, RAGError, VectorDBError
+from .dependencies import get_config, get_rag_pipeline
 
 
 @asynccontextmanager

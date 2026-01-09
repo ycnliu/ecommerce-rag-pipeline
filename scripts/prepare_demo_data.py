@@ -4,8 +4,9 @@ Prepare demo dataset for HuggingFace Spaces deployment.
 Extracts a subset of products with minimal required fields.
 """
 import argparse
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 
 def prepare_demo_data(input_path: str, output_path: str, limit: int = 100):

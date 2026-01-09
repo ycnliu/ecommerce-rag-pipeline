@@ -2,31 +2,31 @@
 Command Line Interface for the E-commerce RAG Pipeline.
 """
 
+import json
 import os
 import sys
-import json
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import click
-import pandas as pd
 import numpy as np
+import pandas as pd
 from loguru import logger
 from tqdm import tqdm
 
-from .utils.config import Config
-from .utils.logging import setup_logging
-from .utils.exceptions import EcommerceRAGError
 from .data.processor import DataProcessor
+from .embedding.fine_tuning import CLIPFineTuner, EcommerceDataset
+from .embedding.fusion import AdvancedEmbeddingFusion
 from .embedding.service import CLIPEmbeddingService
-from .vector_db.faiss_service import FAISSVectorDB
+from .rag.evaluation import RAGEvaluator
 from .rag.llm_client import create_llm_client
 from .rag.rag_pipeline import RAGPipeline
-from .rag.evaluation import RAGEvaluator
-from .embedding.fusion import AdvancedEmbeddingFusion
-from .embedding.fine_tuning import CLIPFineTuner, EcommerceDataset
+from .utils.config import Config
+from .utils.exceptions import EcommerceRAGError
+from .utils.logging import setup_logging
+from .vector_db.faiss_service import FAISSVectorDB
 
 
 @click.group()
@@ -325,6 +325,7 @@ def serve(ctx, host: str, port: int, reload: bool):
 
     try:
         import uvicorn
+
         from .api.main import app
 
         click.echo(f"Starting server on {host}:{port}")

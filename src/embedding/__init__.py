@@ -2,14 +2,14 @@
 Embedding services for the e-commerce RAG pipeline.
 """
 
-from .service import CLIPEmbeddingService
-from .fusion import AdvancedEmbeddingFusion
 from .fine_tuning import (
     CLIPFineTuner,
-    EcommerceDataset,
     ContrastiveLoss,
     DomainAdaptationLoss,
+    EcommerceDataset,
 )
+from .fusion import AdvancedEmbeddingFusion
+from .service import CLIPEmbeddingService
 
 __all__ = [
     "CLIPEmbeddingService",

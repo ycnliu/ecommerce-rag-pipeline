@@ -2,20 +2,25 @@
 CLIP fine-tuning module for domain adaptation on e-commerce data.
 """
 
-import os
 import json
-from typing import List, Dict, Any, Optional, Tuple, Union
+import os
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import requests
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-import numpy as np
-from PIL import Image
-import requests
-from transformers import CLIPProcessor, CLIPModel, CLIPConfig
-from transformers import get_linear_schedule_with_warmup
 from loguru import logger
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
+from transformers import (
+    CLIPConfig,
+    CLIPModel,
+    CLIPProcessor,
+    get_linear_schedule_with_warmup,
+)
 
 try:
     import wandb
@@ -26,8 +31,8 @@ except ImportError:
     wandb = None
 from tqdm import tqdm
 
-from ..utils.exceptions import ModelLoadError, EmbeddingError
 from ..data.models import ProductMetadata
+from ..utils.exceptions import EmbeddingError, ModelLoadError
 
 
 class EcommerceDataset(Dataset):

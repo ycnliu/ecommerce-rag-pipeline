@@ -2,14 +2,15 @@
 Tests for the FastAPI application.
 """
 
-import pytest
 import json
 from unittest.mock import Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.data.models import QueryResponse, SearchResult, HealthCheck
-from src.utils.exceptions import RAGError, EmbeddingError
+from src.data.models import HealthCheck, QueryResponse, SearchResult
+from src.utils.exceptions import EmbeddingError, RAGError
 
 
 class TestAPIEndpoints:
@@ -28,7 +29,7 @@ class TestAPIEndpoints:
             return Config(llm_api_token="test_token")
 
         # Override dependencies
-        from src.api.dependencies import get_rag_pipeline, get_config
+        from src.api.dependencies import get_config, get_rag_pipeline
 
         app.dependency_overrides[get_rag_pipeline] = override_get_rag_pipeline
         app.dependency_overrides[get_config] = override_get_config

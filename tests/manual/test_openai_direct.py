@@ -2,10 +2,11 @@
 """
 Direct test of OpenAI API without dependencies.
 """
-import os
-import requests
 import json
+import os
 import time
+
+import requests
 from dotenv import load_dotenv
 from loguru import logger
 

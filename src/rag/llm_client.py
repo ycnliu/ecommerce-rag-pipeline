@@ -2,10 +2,11 @@
 LLM client for generating responses in the RAG pipeline.
 """
 
-from typing import Optional, Dict, Any, List
-from abc import ABC, abstractmethod
-import requests
 import json
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
+
+import requests
 
 try:
     from huggingface_hub import InferenceClient
@@ -14,7 +15,7 @@ try:
 except ImportError:
     HF_AVAILABLE = False
 try:
-    from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+    from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
     TRANSFORMERS_AVAILABLE = True
 except ImportError:

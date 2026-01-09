@@ -3,14 +3,15 @@
 Test script for LLM client functionality only.
 No dependencies on embedding services or vector databases.
 """
-import sys
-import os
 import importlib.util
-from typing import Optional, Dict, Any, List
-from abc import ABC, abstractmethod
-import requests
 import json
+import os
+import sys
 import time
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
+
+import requests
 
 # Import loguru
 from loguru import logger

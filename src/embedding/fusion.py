@@ -2,14 +2,15 @@
 Advanced embedding fusion strategies for multimodal search.
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, List, Dict, Any, Tuple
-from sentence_transformers import SentenceTransformer
-from transformers import CLIPProcessor, CLIPModel
 from loguru import logger
+from sentence_transformers import SentenceTransformer
+from transformers import CLIPModel, CLIPProcessor
 
 from ..utils.exceptions import EmbeddingError
 from .service import CLIPEmbeddingService
@@ -698,8 +699,8 @@ class AdvancedEmbeddingFusion:
 
     def load_model(self, load_path: str) -> None:
         """Load a saved fusion model."""
-        import os
         import json
+        import os
 
         # Load configuration
         config_path = os.path.join(load_path, "fusion_config.json")

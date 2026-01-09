@@ -8,13 +8,14 @@ import time
 
 sys.path.append("src")
 
+from loguru import logger
+
 from src.embedding.service import CLIPEmbeddingService
-from src.vector_db.faiss_service import FAISSVectorDB
 from src.rag.llm_client import create_llm_client
 from src.rag.prompt_builder import PromptBuilder
-from src.utils.logging import setup_logging
 from src.utils.config import Config
-from loguru import logger
+from src.utils.logging import setup_logging
+from src.vector_db.faiss_service import FAISSVectorDB
 
 
 def test_free_llm_responses():

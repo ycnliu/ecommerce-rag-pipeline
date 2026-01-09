@@ -2,23 +2,24 @@
 """
 Demo script for the E-commerce RAG Pipeline.
 """
+import json
 import os
 import sys
 import time
-import json
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.utils.config import Config
-from src.utils.logging import setup_logging
+from loguru import logger
+
 from src.data.processor import DataProcessor
 from src.embedding.service import CLIPEmbeddingService
-from src.vector_db.faiss_service import FAISSVectorDB
 from src.rag.llm_client import create_llm_client
 from src.rag.rag_pipeline import RAGPipeline
-from loguru import logger
+from src.utils.config import Config
+from src.utils.logging import setup_logging
+from src.vector_db.faiss_service import FAISSVectorDB
 
 
 def create_sample_data():

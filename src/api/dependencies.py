@@ -6,13 +6,13 @@ import os
 from functools import lru_cache
 from typing import Optional
 
-from ..utils.config import Config
-from ..utils.exceptions import ConfigurationError
+from ..data.processor import DataProcessor
 from ..embedding.service import CLIPEmbeddingService
-from ..vector_db.faiss_service import FAISSVectorDB
 from ..rag.llm_client import create_llm_client
 from ..rag.rag_pipeline import RAGPipeline
-from ..data.processor import DataProcessor
+from ..utils.config import Config
+from ..utils.exceptions import ConfigurationError
+from ..vector_db.faiss_service import FAISSVectorDB
 
 
 @lru_cache()

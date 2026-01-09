@@ -3,10 +3,11 @@
 Test different Hugging Face models to find working ones.
 """
 import os
+import time
+
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 from loguru import logger
-import time
 
 
 def test_hf_models():
@@ -55,8 +56,8 @@ def test_hf_models():
 
     try:
         # Create a minimal LLM client for testing
-        from typing import Optional, Dict, Any, List
         from abc import ABC, abstractmethod
+        from typing import Any, Dict, List, Optional
 
         class TestFreeLLMClient:
             def __init__(self, model_name: str, api_token: str):

@@ -2,6 +2,7 @@
 RAG (Retrieval-Augmented Generation) services for the e-commerce pipeline.
 """
 
+from .evaluation import RAGEvaluator
 from .llm_client import (
     BaseLLMClient,
     HuggingFaceLLMClient,
@@ -10,7 +11,6 @@ from .llm_client import (
 )
 from .prompt_builder import PromptBuilder
 from .rag_pipeline import RAGPipeline
-from .evaluation import RAGEvaluator
 
 __all__ = [
     "BaseLLMClient",

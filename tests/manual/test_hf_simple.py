@@ -3,10 +3,11 @@
 Simple test for Hugging Face API integration.
 """
 import os
+import time
+
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 from loguru import logger
-import time
 
 
 def test_hf_direct():

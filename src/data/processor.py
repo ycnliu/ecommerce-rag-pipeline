@@ -3,9 +3,10 @@ Data processing module for e-commerce product data.
 """
 
 import re
-from typing import Dict, List, Optional, Tuple, Any
-import pandas as pd
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from .models import ProductMetadata

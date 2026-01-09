@@ -9,8 +9,9 @@ import time
 sys.path.append("src")
 
 from dotenv import load_dotenv
-from src.rag.llm_client import create_llm_client
 from loguru import logger
+
+from src.rag.llm_client import create_llm_client
 
 
 def test_openai_integration():

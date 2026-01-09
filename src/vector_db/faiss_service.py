@@ -3,13 +3,14 @@ FAISS vector database service for similarity search.
 """
 
 import os
-from typing import List, Tuple, Optional, Any, Dict
-import numpy as np
+from typing import Any, Dict, List, Optional, Tuple
+
 import faiss
+import numpy as np
 from loguru import logger
 
+from ..data.models import IndexStats, ProductMetadata
 from ..utils.exceptions import VectorDBError
-from ..data.models import ProductMetadata, IndexStats
 
 
 class FAISSVectorDB:

@@ -3,8 +3,9 @@ Field extraction patterns for structured queries in e-commerce.
 """
 
 import re
-from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 from loguru import logger
 
 

@@ -4,18 +4,18 @@ Utility modules for the e-commerce RAG pipeline.
 
 from .config import Config
 from .exceptions import (
-    EcommerceRAGError,
+    APIError,
     ConfigurationError,
     DataProcessingError,
+    EcommerceRAGError,
     EmbeddingError,
-    ModelLoadError,
-    VectorDBError,
     LLMError,
+    ModelLoadError,
     RAGError,
-    APIError,
     ValidationError,
+    VectorDBError,
 )
-from .logging import setup_logging, get_logger, LoggerMixin
+from .logging import LoggerMixin, get_logger, setup_logging
 
 __all__ = [
     "Config",

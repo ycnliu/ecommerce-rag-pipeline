@@ -2,15 +2,16 @@
 Tests for vector database functionality.
 """
 
-import pytest
-import numpy as np
-import tempfile
 import os
+import tempfile
 
-from src.vector_db.faiss_service import FAISSVectorDB
-from src.vector_db.evaluation import VectorDBEvaluator
+import numpy as np
+import pytest
+
 from src.data.models import ProductMetadata
 from src.utils.exceptions import VectorDBError
+from src.vector_db.evaluation import VectorDBEvaluator
+from src.vector_db.faiss_service import FAISSVectorDB
 
 
 class TestFAISSVectorDB:
