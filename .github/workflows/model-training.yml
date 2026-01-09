@@ -95,7 +95,7 @@ jobs:
           --output-file evaluation_results.json
 
     - name: Upload model artifacts
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v4
       with:
         name: trained-model-${{ github.event.inputs.model_type }}-${{ github.run_number }}
         path: |
