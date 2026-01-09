@@ -9,13 +9,14 @@ import json
 import csv
 from typing import List, Dict
 
+
 # Load demo products
 def load_demo_products() -> List[Dict]:
     """Load demo products from CSV."""
     products = []
 
     try:
-        with open('demo_products.csv', 'r', encoding='utf-8') as f:
+        with open("demo_products.csv", "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 products.append(row)
@@ -26,17 +27,18 @@ def load_demo_products() -> List[Dict]:
                 "name": "Sony WH-CH720N Wireless Headphones",
                 "price": "89.99",
                 "category": "Electronics",
-                "description": "Active Noise Cancelling, 35-hour battery"
+                "description": "Active Noise Cancelling, 35-hour battery",
             },
             {
                 "name": "JBL Tune 510BT Wireless Headphones",
                 "price": "39.99",
                 "category": "Audio",
-                "description": "Wireless Bluetooth 5.0, Pure Bass sound"
-            }
+                "description": "Wireless Bluetooth 5.0, Pure Bass sound",
+            },
         ]
 
     return products
+
 
 # Simple search function
 def search_products(query: str, products: List[Dict]) -> List[Dict]:
@@ -61,6 +63,7 @@ def search_products(query: str, products: List[Dict]) -> List[Dict]:
 
     return results[:5] if results else products[:5]
 
+
 # Generate AI-like response
 def generate_response(query: str, results: List[Dict]) -> str:
     """Generate template-based recommendation."""
@@ -70,9 +73,9 @@ def generate_response(query: str, results: List[Dict]) -> str:
     response = f"Based on your search for '{query}', here are my recommendations:\n\n"
 
     for i, product in enumerate(results[:3], 1):
-        name = product.get('name', 'Unknown')
-        price = product.get('price', 'N/A')
-        desc = product.get('description', 'No description')
+        name = product.get("name", "Unknown")
+        price = product.get("price", "N/A")
+        desc = product.get("description", "No description")
 
         response += f"{i}. **{name}**\n"
         response += f"   - Price: ${price}\n"
@@ -82,8 +85,10 @@ def generate_response(query: str, results: List[Dict]) -> str:
 
     return response
 
+
 # Load products
 PRODUCTS = load_demo_products()
+
 
 # Process query
 def process_query(query: str) -> tuple:
@@ -111,13 +116,15 @@ def process_query(query: str) -> tuple:
 
     return search_md, ai_response
 
+
 # Create Gradio interface
 def create_interface():
     """Create the Gradio demo interface."""
 
     with gr.Blocks(title="E-commerce RAG Pipeline Demo") as demo:
 
-        gr.HTML("""
+        gr.HTML(
+            """
         <div style="text-align: center; margin-bottom: 2em;">
             <h1>E-commerce RAG Pipeline</h1>
             <p>AI-powered product search and recommendations (Demo Version)</p>
@@ -126,19 +133,21 @@ def create_interface():
                 <a href="https://github.com/ycnliu/ecommerce-rag-pipeline">GitHub</a>
             </p>
         </div>
-        """)
+        """
+        )
 
         with gr.Row():
             with gr.Column(scale=1):
                 query_input = gr.Textbox(
                     label="Search Query",
                     placeholder="e.g., 'wireless headphones under $100'",
-                    lines=2
+                    lines=2,
                 )
 
                 search_btn = gr.Button("Search Products", variant="primary", size="lg")
 
-                gr.HTML("""
+                gr.HTML(
+                    """
                 <div style="margin-top: 1em; padding: 1em; background: #f5f5f5; border-radius: 8px;">
                     <h4>Example Queries:</h4>
                     <ul style="margin: 0.5em 0;">
@@ -147,22 +156,23 @@ def create_interface():
                         <li>electronics under $50</li>
                     </ul>
                 </div>
-                """)
+                """
+                )
 
         with gr.Row():
             with gr.Column(scale=1):
                 search_output = gr.Markdown(
-                    label="Product Results",
-                    value="Search results will appear here..."
+                    label="Product Results", value="Search results will appear here..."
                 )
 
             with gr.Column(scale=1):
                 ai_output = gr.Markdown(
                     label="AI Recommendations",
-                    value="AI recommendations will appear here..."
+                    value="AI recommendations will appear here...",
                 )
 
-        gr.HTML("""
+        gr.HTML(
+            """
         <div style="margin-top: 2em; padding: 1.5em; background: #f9f9f9; border-radius: 10px;">
             <h3>About This Demo</h3>
             <p><strong>Technology:</strong> Retrieval-Augmented Generation (RAG) pipeline</p>
@@ -176,22 +186,20 @@ def create_interface():
                 FAISS indexing, and LLM integration.
             </p>
         </div>
-        """)
+        """
+        )
 
         # Event handlers
         search_btn.click(
-            fn=process_query,
-            inputs=[query_input],
-            outputs=[search_output, ai_output]
+            fn=process_query, inputs=[query_input], outputs=[search_output, ai_output]
         )
 
         query_input.submit(
-            fn=process_query,
-            inputs=[query_input],
-            outputs=[search_output, ai_output]
+            fn=process_query, inputs=[query_input], outputs=[search_output, ai_output]
         )
 
     return demo
+
 
 # Launch
 if __name__ == "__main__":

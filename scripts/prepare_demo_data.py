@@ -18,11 +18,11 @@ def prepare_demo_data(input_path: str, output_path: str, limit: int = 100):
 
     # Select relevant columns
     columns_to_keep = [
-        'Product Name',
-        'Selling Price',
-        'Category',
-        'About Product',
-        'Product Description'
+        "Product Name",
+        "Selling Price",
+        "Category",
+        "About Product",
+        "Product Description",
     ]
 
     # Filter columns that exist
@@ -37,27 +37,34 @@ def prepare_demo_data(input_path: str, output_path: str, limit: int = 100):
 
     # Rename columns to standard names
     column_mapping = {
-        'Product Name': 'name',
-        'Selling Price': 'price',
-        'Category': 'category',
-        'About Product': 'description',
-        'Product Description': 'description_long'
+        "Product Name": "name",
+        "Selling Price": "price",
+        "Category": "category",
+        "About Product": "description",
+        "Product Description": "description_long",
     }
 
     demo_df.rename(columns=column_mapping, inplace=True)
 
     # Clean data
-    demo_df = demo_df.fillna('Not available')
+    demo_df = demo_df.fillna("Not available")
 
     # Combine descriptions if both exist
-    if 'description' in demo_df.columns and 'description_long' in demo_df.columns:
-        demo_df['description'] = demo_df.apply(
-            lambda row: row['description'] if pd.notna(row['description']) and row['description'] != 'Not available'
-            else row['description_long'] if pd.notna(row['description_long'])
-            else 'No description',
-            axis=1
+    if "description" in demo_df.columns and "description_long" in demo_df.columns:
+        demo_df["description"] = demo_df.apply(
+            lambda row: (
+                row["description"]
+                if pd.notna(row["description"])
+                and row["description"] != "Not available"
+                else (
+                    row["description_long"]
+                    if pd.notna(row["description_long"])
+                    else "No description"
+                )
+            ),
+            axis=1,
         )
-        demo_df = demo_df.drop('description_long', axis=1)
+        demo_df = demo_df.drop("description_long", axis=1)
 
     # Ensure output directory exists
     output_path = Path(output_path)
@@ -72,15 +79,17 @@ def prepare_demo_data(input_path: str, output_path: str, limit: int = 100):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Prepare demo dataset for HF Spaces')
-    parser.add_argument('--input', required=True, help='Input CSV file')
-    parser.add_argument('--output', required=True, help='Output CSV file')
-    parser.add_argument('--limit', type=int, default=100, help='Number of products to include')
+    parser = argparse.ArgumentParser(description="Prepare demo dataset for HF Spaces")
+    parser.add_argument("--input", required=True, help="Input CSV file")
+    parser.add_argument("--output", required=True, help="Output CSV file")
+    parser.add_argument(
+        "--limit", type=int, default=100, help="Number of products to include"
+    )
 
     args = parser.parse_args()
 
     prepare_demo_data(args.input, args.output, args.limit)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

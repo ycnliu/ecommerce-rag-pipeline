@@ -43,9 +43,11 @@ def verify_space(space_url: str, max_retries: int = 5):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Verify HuggingFace Space')
-    parser.add_argument('--space-url', required=True, help='Space URL')
-    parser.add_argument('--max-retries', type=int, default=5, help='Maximum retry attempts')
+    parser = argparse.ArgumentParser(description="Verify HuggingFace Space")
+    parser.add_argument("--space-url", required=True, help="Space URL")
+    parser.add_argument(
+        "--max-retries", type=int, default=5, help="Maximum retry attempts"
+    )
 
     args = parser.parse_args()
 
@@ -53,5 +55,5 @@ def main():
     print("Verification successful!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
