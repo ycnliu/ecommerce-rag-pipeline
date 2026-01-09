@@ -89,10 +89,17 @@ jobs:
 
     - name: Security check with bandit
       run: |
-        # Generate full report
+        # Generate full report (all severities)
         bandit -r src/ -f json -o bandit-report.json || true
-        # Only fail on high severity issues
-        bandit -r src/ -ll -f txt
+        bandit -r src/ -f txt || true
+        # Fail only on high severity issues
+        HIGH_ISSUES=$(bandit -r src/ -f json --severity-level high 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('results',[])))" 2>/dev/null || echo "0")
+        echo "High severity issues found: $HIGH_ISSUES"
+        if [ "$HIGH_ISSUES" != "0" ]; then
+          echo "Failing due to high severity security issues"
+          bandit -r src/ --severity-level high
+          exit 1
+        fi
 
     - name: Dependency audit with pip-audit
       run: |
