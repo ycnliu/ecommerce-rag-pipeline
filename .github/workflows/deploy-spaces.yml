@@ -8,6 +8,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: hf-spaces-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   PYTHON_VERSION: '3.9'
   HF_USERNAME: YCHL
@@ -73,20 +77,19 @@ jobs:
         pip install pytest pytest-cov flake8 black isort mypy bandit pip-audit
 
     - name: Run tests
-      continue-on-error: true
       run: |
-        pytest tests/ -v --cov=src --cov-report=term --ignore=tests/manual/ || echo "Some tests failed, continuing..."
+        pytest tests/ -v --cov=src --cov-report=term --ignore=tests/manual/
 
     - name: Lint with flake8
       run: |
         flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        flake8 src/ --max-complexity=10 --max-line-length=88
 
     - name: Check code formatting
       run: |
         black --check src/ tests/ scripts/ space/
 
-    - name: Type check with mypy
+    - name: Type check (informational)
       run: |
         mypy src/ --ignore-missing-imports || true
 
@@ -157,22 +160,47 @@ jobs:
     - name: Smoke test preview
       continue-on-error: true
       run: |
-        sleep 60  # Wait for Space to build and start
-        curl -f https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PREVIEW }} || echo "Space may still be building"
+        sleep 90  # Wait for Space to build and start
+        # Verify deployment by checking for commit SHA in response
+        if curl -fsSL "https://${{ env.HF_USERNAME }}-${{ env.HF_SPACE_PREVIEW }}.hf.space" | grep -q "${GITHUB_SHA:0:7}"; then
+          echo "Deployment verified: commit ${GITHUB_SHA:0:7} found"
+        else
+          echo "Warning: commit SHA not found in response (Space may still be building)"
+        fi
 
     - name: Comment on PR
       uses: actions/github-script@v7
       with:
         script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
+          const marker = '<!-- hf-preview-comment -->';
+          const body = `${marker}\n## Preview Deployed\n\n` +
+                `Preview URL: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PREVIEW }}\n\n` +
+                `Built from commit: \`${context.sha.substring(0, 7)}\`\n` +
+                `Quality gates: Passed`;
+
+          // Find existing comment
+          const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: `## Preview Deployed\n\n` +
-                  `Preview URL: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PREVIEW }}\n\n` +
-                  `Built from commit: ${context.sha.substring(0, 7)}\n` +
-                  `Quality gates: Passed`
-          })
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.body.includes(marker));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body: body
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }
 
   deploy-production:
     name: Deploy Production
@@ -215,14 +243,13 @@ jobs:
     - name: Smoke test production
       continue-on-error: true
       run: |
-        sleep 60  # Wait for Space to build and start
-        curl -f https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PROD }} || echo "Space may still be building"
-
-    - name: Verify Space is running
-      continue-on-error: true
-      run: |
-        python scripts/verify_space.py \
-          --space-url https://huggingface.co/spaces/${{ env.HF_USERNAME }}/${{ env.HF_SPACE_PROD }} || echo "Verification skipped - Space may be building"
+        sleep 90  # Wait for Space to build and start
+        # Verify deployment by checking for commit SHA in response
+        if curl -fsSL "https://${{ env.HF_USERNAME }}-${{ env.HF_SPACE_PROD }}.hf.space" | grep -q "${GITHUB_SHA:0:7}"; then
+          echo "Deployment verified: commit ${GITHUB_SHA:0:7} found in production"
+        else
+          echo "Warning: commit SHA not found in response (Space may still be building)"
+        fi
 
     - name: Notify on success
       if: success()

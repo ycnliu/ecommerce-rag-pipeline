@@ -20,22 +20,29 @@ def calculate_file_hash(file_path: Path) -> str:
     return sha256.hexdigest()
 
 
-def generate_manifest(output_path: str, version: str, source_dir: str = "space"):
+def generate_manifest(
+    output_path: str,
+    version: str,
+    source_dir: str = "space",
+    target: str = "production",
+):
     """Generate deployment manifest with file hashes."""
 
     source_dir = Path(source_dir)
+    repo_root = Path(".")
 
     manifest = {
         "version": version,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "build_time_utc": datetime.utcnow().isoformat() + "Z",
+        "target": target,
         "files": {},
+        "traceability": {},
         "metadata": {
             "deployment_type": "huggingface_spaces",
-            "environment": "production" if "main" in version else "preview",
         },
     }
 
-    # Calculate hashes for key files
+    # Calculate hashes for key files in source dir
     files_to_track = ["app.py", "requirements.txt", "demo_products.csv"]
 
     for file_name in files_to_track:
@@ -45,9 +52,20 @@ def generate_manifest(output_path: str, version: str, source_dir: str = "space")
             manifest["files"][file_name] = {
                 "hash": calculate_file_hash(file_path),
                 "size": file_path.stat().st_size,
-                "modified": datetime.fromtimestamp(
-                    file_path.stat().st_mtime
-                ).isoformat(),
+            }
+
+    # Add traceability hashes for reproducibility
+    traceability_files = {
+        "requirements": repo_root / "requirements.txt",
+        "dataset": repo_root / "data" / "amazon_com_ecommerce.csv",
+        "demo_data": source_dir / "demo_products.csv",
+    }
+
+    for key, file_path in traceability_files.items():
+        if file_path.exists():
+            manifest["traceability"][key] = {
+                "path": str(file_path),
+                "sha256": calculate_file_hash(file_path),
             }
 
     # Ensure output directory exists
@@ -68,10 +86,13 @@ def main():
     parser.add_argument("--output", required=True, help="Output manifest file")
     parser.add_argument("--version", required=True, help="Version/commit hash")
     parser.add_argument("--source-dir", default="space", help="Source directory")
+    parser.add_argument(
+        "--target", default="production", help="Deployment target (preview/production)"
+    )
 
     args = parser.parse_args()
 
-    generate_manifest(args.output, args.version, args.source_dir)
+    generate_manifest(args.output, args.version, args.source_dir, args.target)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,19 @@ from typing import Dict, List
 import gradio as gr
 
 
+def get_build_version() -> str:
+    """Get build version from manifest.json."""
+    try:
+        with open("manifest.json", "r") as f:
+            manifest = json.load(f)
+            return manifest.get("version", "dev")[:7]
+    except FileNotFoundError:
+        return "dev"
+
+
+BUILD_VERSION = get_build_version()
+
+
 # Load demo products
 def load_demo_products() -> List[Dict]:
     """Load demo products from CSV."""
@@ -173,7 +186,7 @@ def create_interface():
                 )
 
         gr.HTML(
-            """
+            f"""
         <div style="margin-top: 2em; padding: 1.5em; background: #f9f9f9; border-radius: 10px;">
             <h3>About This Demo</h3>
             <p><strong>Technology:</strong> Retrieval-Augmented Generation (RAG) pipeline</p>
@@ -185,6 +198,9 @@ def create_interface():
             <p style="font-size: 0.9em; color: #666; margin-top: 1em;">
                 Note: This is a lightweight demo. Full version includes real CLIP embeddings,
                 FAISS indexing, and LLM integration.
+            </p>
+            <p style="font-size: 0.8em; color: #999; margin-top: 0.5em;">
+                Build: <code id="build-version">{BUILD_VERSION}</code>
             </p>
         </div>
         """
