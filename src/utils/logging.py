@@ -3,7 +3,6 @@ Logging configuration for the e-commerce RAG pipeline.
 """
 
 import sys
-from pathlib import Path
 from typing import Optional
 
 from loguru import logger

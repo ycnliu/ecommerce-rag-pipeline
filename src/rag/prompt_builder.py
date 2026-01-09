@@ -2,9 +2,8 @@
 Prompt building utilities for the RAG pipeline.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-import pandas as pd
 from loguru import logger
 
 from ..data.models import ProductMetadata

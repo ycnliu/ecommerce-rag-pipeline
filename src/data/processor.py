@@ -3,9 +3,8 @@ Data processing module for e-commerce product data.
 """
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 

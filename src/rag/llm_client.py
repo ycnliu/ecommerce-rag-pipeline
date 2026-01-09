@@ -2,7 +2,6 @@
 LLM client for generating responses in the RAG pipeline.
 """
 
-import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
@@ -15,7 +14,7 @@ try:
 except ImportError:
     HF_AVAILABLE = False
 try:
-    from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+    from transformers import pipeline
 
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
@@ -37,12 +36,10 @@ class BaseLLMClient(ABC):
         stop_sequences: Optional[List[str]] = None,
     ) -> str:
         """Generate response from prompt."""
-        pass
 
     @abstractmethod
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information."""
-        pass
 
 
 class HuggingFaceLLMClient(BaseLLMClient):

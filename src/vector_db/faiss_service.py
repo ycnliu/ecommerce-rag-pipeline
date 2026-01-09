@@ -3,7 +3,7 @@ FAISS vector database service for similarity search.
 """
 
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import faiss
 import numpy as np
@@ -292,7 +292,7 @@ class FAISSVectorDB:
                 memory_usage = (self.index.ntotal * self.dimension * 4) / (
                     1024 * 1024
                 )  # MB
-            except:
+            except Exception:
                 pass
 
         return IndexStats(

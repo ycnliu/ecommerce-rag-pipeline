@@ -1,5 +1,7 @@
 """
-E-commerce RAG Pipeline - Industry-level multimodal product search and recommendation system.
+E-commerce RAG Pipeline.
+
+Industry-level multimodal product search and recommendation system.
 
 This package provides a complete RAG (Retrieval-Augmented Generation) pipeline for
 e-commerce applications, featuring:

@@ -3,9 +3,8 @@ CLIP fine-tuning module for domain adaptation on e-commerce data.
 """
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import requests
@@ -16,7 +15,6 @@ from loguru import logger
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
-    CLIPConfig,
     CLIPModel,
     CLIPProcessor,
     get_linear_schedule_with_warmup,
@@ -32,7 +30,7 @@ except ImportError:
 from tqdm import tqdm
 
 from ..data.models import ProductMetadata
-from ..utils.exceptions import EmbeddingError, ModelLoadError
+from ..utils.exceptions import ModelLoadError
 
 
 class EcommerceDataset(Dataset):
@@ -503,7 +501,8 @@ class CLIPFineTuner:
         """
         if self.model is None or self.optimizer is None:
             raise ValueError(
-                "Model and optimizer not setup. Call load_model() and setup_training() first."
+                "Model and optimizer not setup. "
+                "Call load_model() and setup_training() first."
             )
 
         # Initialize wandb if requested

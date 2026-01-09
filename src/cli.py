@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import click
 import numpy as np
@@ -24,7 +24,6 @@ from .rag.evaluation import RAGEvaluator
 from .rag.llm_client import create_llm_client
 from .rag.rag_pipeline import RAGPipeline
 from .utils.config import Config
-from .utils.exceptions import EcommerceRAGError
 from .utils.logging import setup_logging
 from .vector_db.faiss_service import FAISSVectorDB
 
@@ -60,7 +59,7 @@ def cli(ctx, config_file: Optional[str], verbose: bool):
 @click.pass_context
 def process_data(ctx, csv_path: str, output_dir: str, force: bool):
     """Process raw CSV data and prepare for indexing."""
-    config = ctx.obj["config"]
+    _config = ctx.obj["config"]  # noqa: F841
 
     try:
         click.echo(f"Processing data from: {csv_path}")
@@ -103,7 +102,7 @@ def process_data(ctx, csv_path: str, output_dir: str, force: bool):
                 json.dump(metadata_dict, f, indent=2, default=str)
             bar.update(1)
 
-        click.echo(f"✅ Data processing completed!")
+        click.echo("Data processing completed!")
         click.echo(f"   Processed {len(df)} records")
         click.echo(f"   Saved to: {output_path}")
 
@@ -196,7 +195,7 @@ def build_index(ctx, csv_path: str, output_dir: str, batch_size: int, force: boo
         # Save index
         vector_db.save_index(str(index_path), str(metadata_path))
 
-        click.echo(f"✅ Index building completed!")
+        click.echo("Index building completed!")
         click.echo(f"   Indexed {len(metadata_list)} products")
         click.echo(f"   Index saved to: {index_path}")
         click.echo(f"   Metadata saved to: {metadata_path}")
@@ -297,7 +296,7 @@ def evaluate(ctx, queries_file: str, output_file: str, k: int):
             json.dump(results, f, indent=2, default=str)
 
         # Display summary
-        click.echo(f"✅ Evaluation completed!")
+        click.echo("Evaluation completed!")
         click.echo(f"   Results saved to: {output_file}")
 
         if "response_quality" in results:
@@ -447,7 +446,7 @@ def train_clip(
         with open(config_path, "w") as f:
             json.dump(training_config, f, indent=2)
 
-        click.echo(f"✅ CLIP training completed!")
+        click.echo("CLIP training completed!")
         click.echo(f"   Model saved to: {output_dir}")
 
         if use_wandb:
@@ -526,7 +525,7 @@ def train_fusion(
 
         # Load data
         click.echo("Loading training data...")
-        df = pd.read_csv(data_path)
+        _df = pd.read_csv(data_path)  # noqa: F841 - validates data exists
 
         # Initialize fusion model
         fusion_model = AdvancedEmbeddingFusion(
@@ -558,7 +557,7 @@ def train_fusion(
         with open(config_path, "w") as f:
             json.dump(training_config, f, indent=2)
 
-        click.echo(f"✅ Fusion training completed!")
+        click.echo("Fusion training completed!")
         click.echo(f"   Model saved to: {output_dir}")
 
         if use_wandb:
@@ -579,7 +578,7 @@ def train_fusion(
 @click.pass_context
 def evaluate_model(ctx, model_path: str, test_data: str, output_file: str, k: int):
     """Evaluate trained model performance."""
-    config = ctx.obj["config"]
+    _config = ctx.obj["config"]  # noqa: F841
 
     try:
         click.echo(f"Evaluating model: {model_path}")
@@ -591,7 +590,7 @@ def evaluate_model(ctx, model_path: str, test_data: str, output_file: str, k: in
             raise click.FileError(test_data, "Test data not found")
 
         # Load test data
-        df = pd.read_csv(test_data)
+        _df = pd.read_csv(test_data)  # noqa: F841 - validates data exists
 
         # Initialize pipeline with trained model
         # Note: This would need to be adapted based on model type
@@ -614,7 +613,7 @@ def evaluate_model(ctx, model_path: str, test_data: str, output_file: str, k: in
         with open(output_file, "w") as f:
             json.dump(results, f, indent=2)
 
-        click.echo(f"✅ Evaluation completed!")
+        click.echo("Evaluation completed!")
         click.echo(f"   Results saved to: {output_file}")
 
     except Exception as e:
@@ -632,7 +631,7 @@ def push_to_hub(
     ctx, model_path: str, repo_name: str, private: bool, commit_message: str
 ):
     """Push trained model to Hugging Face Hub."""
-    config = ctx.obj["config"]
+    _config = ctx.obj["config"]  # noqa: F841
 
     try:
         click.echo(f"Uploading model to Hugging Face: {repo_name}")
@@ -666,7 +665,7 @@ def push_to_hub(
                 token=hf_token,
             )
 
-            click.echo(f"✅ Model uploaded successfully!")
+            click.echo("Model uploaded successfully!")
             click.echo(f"   Repository: https://huggingface.co/{repo_name}")
 
         except ImportError:
@@ -681,7 +680,7 @@ def push_to_hub(
 
 @cli.command()
 @click.pass_context
-def status(ctx):
+def status(ctx):  # noqa: C901
     """Show pipeline status and configuration."""
     config = ctx.obj["config"]
 
@@ -713,7 +712,7 @@ def status(ctx):
         click.echo("\n🧪 Service Health Check:")
 
         try:
-            embedding_service = CLIPEmbeddingService(
+            CLIPEmbeddingService(
                 model_name=config.clip_model_name, device=config.device
             )
             click.echo("   Embedding Service: ✅")
@@ -735,7 +734,7 @@ def status(ctx):
 
         try:
             if config.validate_llm_config():
-                llm_client = create_llm_client(
+                create_llm_client(
                     provider=config.llm_provider,
                     model_name=config.llm_model_name,
                     api_token=config.llm_api_token,
@@ -798,11 +797,11 @@ def _display_table_results(response):
     click.echo(f"📊 Found {len(response.results)} results")
 
     if response.generated_response:
-        click.echo(f"\n🤖 AI Response:")
+        click.echo("\nAI Response:")
         click.echo(response.generated_response)
 
     if response.results:
-        click.echo(f"\n📋 Search Results:")
+        click.echo("\nSearch Results:")
         for i, result in enumerate(response.results, 1):
             click.echo(f"\n{i}. Score: {result.score:.3f}")
             click.echo(f"   Product: {result.metadata.combined_text[:100]}...")
@@ -816,13 +815,13 @@ def _display_detailed_results(response):
     click.echo(f"⏱️  Processing time: {response.processing_time:.2f}s")
 
     if response.generated_response:
-        click.echo(f"\n🤖 AI Response:")
+        click.echo("\nAI Response:")
         click.echo("-" * 50)
         click.echo(response.generated_response)
         click.echo("-" * 50)
 
     if response.results:
-        click.echo(f"\n📋 Detailed Results:")
+        click.echo("\nDetailed Results:")
         for i, result in enumerate(response.results, 1):
             click.echo(f"\n{'='*20} Result {i} {'='*20}")
             click.echo(f"Score: {result.score:.3f}")

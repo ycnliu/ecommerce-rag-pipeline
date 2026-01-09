@@ -3,9 +3,8 @@ Main RAG (Retrieval-Augmented Generation) pipeline.
 """
 
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
 from loguru import logger
 from PIL import Image
 

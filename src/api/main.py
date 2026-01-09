@@ -2,7 +2,6 @@
 FastAPI application for the e-commerce RAG pipeline.
 """
 
-import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -17,7 +16,6 @@ from ..data.models import (
     EmbeddingRequest,
     EmbeddingResponse,
     HealthCheck,
-    IndexStats,
     QueryRequest,
     QueryResponse,
 )
@@ -34,7 +32,7 @@ async def lifespan(app: FastAPI):
 
     # Load configuration and initialize services
     try:
-        config = Config()
+        _config = Config()  # noqa: F841 - validates config at startup
         # Services will be initialized via dependency injection
         logger.info("API startup completed successfully")
         yield
@@ -74,7 +72,7 @@ async def root():
 
 
 @app.get("/health", response_model=HealthCheck)
-async def health_check(
+async def health_check(  # noqa: C901
     rag_pipeline: RAGPipeline = Depends(get_rag_pipeline),
     config: Config = Depends(get_config),
 ):
@@ -101,7 +99,7 @@ async def health_check(
 
         # Check LLM client
         try:
-            llm_info = rag_pipeline.llm_client.get_model_info()
+            rag_pipeline.llm_client.get_model_info()
             services["llm_client"] = "healthy"
         except Exception as e:
             services["llm_client"] = f"error: {str(e)}"

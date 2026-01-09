@@ -10,7 +10,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from loguru import logger
 from sentence_transformers import SentenceTransformer
-from transformers import CLIPModel, CLIPProcessor
 
 from ..utils.exceptions import EmbeddingError
 from .service import CLIPEmbeddingService
@@ -149,7 +148,8 @@ class AdvancedEmbeddingFusion:
             ).to(self.device)
 
         logger.info(
-            f"Initialized advanced fusion with CLIP: {clip_model_name}, Sentence: {sentence_model_name}"
+            f"Initialized advanced fusion with CLIP: {clip_model_name}, "
+            f"Sentence: {sentence_model_name}"
         )
         if self.use_neural_fusion:
             logger.info("Neural fusion modules enabled")
@@ -172,7 +172,7 @@ class AdvancedEmbeddingFusion:
             embedding, (0, self.target_dim - embedding.shape[0]), mode="constant"
         )
 
-    def fuse_embeddings(
+    def fuse_embeddings(  # noqa: C901
         self,
         embeddings: List[np.ndarray],
         weights: Optional[List[float]] = None,
@@ -615,7 +615,8 @@ class AdvancedEmbeddingFusion:
         optimizer = torch.optim.Adam(params, lr=learning_rate)
 
         logger.info(
-            f"Training neural fusion on {len(training_data)} examples for {epochs} epochs"
+            f"Training neural fusion on {len(training_data)} examples "
+            f"for {epochs} epochs"
         )
 
         for epoch in range(epochs):
@@ -705,7 +706,7 @@ class AdvancedEmbeddingFusion:
         # Load configuration
         config_path = os.path.join(load_path, "fusion_config.json")
         with open(config_path, "r") as f:
-            config = json.load(f)
+            _config = json.load(f)  # noqa: F841 - validates config exists
 
         # Load neural modules if they exist
         neural_path = os.path.join(load_path, "neural_modules.pt")

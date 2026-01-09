@@ -4,7 +4,6 @@ Dependency injection for FastAPI endpoints.
 
 import os
 from functools import lru_cache
-from typing import Optional
 
 from ..data.processor import DataProcessor
 from ..embedding.service import CLIPEmbeddingService

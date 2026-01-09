@@ -418,7 +418,6 @@ class SmartFieldExtractor(FieldExtractor):
         Returns:
             Tuple of (extracted_value, confidence) or None
         """
-        from difflib import SequenceMatcher
 
         best_match = None
         best_confidence = 0.0
@@ -475,7 +474,7 @@ class SmartFieldExtractor(FieldExtractor):
     ) -> Optional[str]:
         """Infer price information from context."""
         # This is a placeholder for more sophisticated context-based inference
-        category = context.get("category", "").lower()
+        _category = context.get("category", "").lower()  # noqa: F841
 
         # Look for any price-like patterns in text
         price_patterns = [

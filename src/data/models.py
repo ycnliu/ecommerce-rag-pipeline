@@ -2,7 +2,7 @@
 Data models for the e-commerce RAG pipeline.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, HttpUrl
 

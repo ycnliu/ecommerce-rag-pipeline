@@ -2,15 +2,13 @@
 Evaluation utilities for RAG pipeline performance.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from loguru import logger
 from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
 from rouge_score import rouge_scorer
-from sklearn.metrics import pairwise_distances
 
-from ..data.models import QueryRequest, QueryResponse
 from .rag_pipeline import RAGPipeline
 
 
