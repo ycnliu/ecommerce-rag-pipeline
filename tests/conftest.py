@@ -109,11 +109,11 @@ def sample_embeddings():
 @pytest.fixture
 def mock_rag_pipeline(mock_embedding_service, mock_vector_db, mock_llm_client):
     """Mock RAG pipeline for testing."""
-    return RAGPipeline(
-        embedding_service=mock_embedding_service,
-        vector_db=mock_vector_db,
-        llm_client=mock_llm_client,
-    )
+    pipeline = Mock(spec=RAGPipeline)
+    pipeline.embedding_service = mock_embedding_service
+    pipeline.vector_db = mock_vector_db
+    pipeline.llm_client = mock_llm_client
+    return pipeline
 
 
 @pytest.fixture

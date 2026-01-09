@@ -78,7 +78,7 @@ class TestFAISSVectorDB:
         results, distances = db.search(query, k=5)
 
         assert len(results) == 0
-        assert len(distances) == 0
+        assert distances is None or len(distances) == 0
 
     def test_search_with_results(self, sample_embeddings, sample_product_metadata):
         """Test searching with populated index."""

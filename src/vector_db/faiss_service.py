@@ -328,6 +328,7 @@ class FAISSVectorDB:
             if all_vectors:
                 embeddings = np.vstack(all_vectors)
                 self._create_index()  # Reset index
+                self.metadata = []  # Clear metadata before adding
                 self.add_vectors(embeddings, new_metadata, train_if_needed=True)
             else:
                 self._create_index()  # Empty index
