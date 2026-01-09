@@ -59,7 +59,8 @@ dev = [
 ecommerce-rag = "src.cli:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
+include = ["src*"]
 
 [tool.black]
 line-length = 88
