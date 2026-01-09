@@ -121,3 +121,7 @@ tests/integration/outputs/
 # Gradio
 .gradio/
 flagged/
+
+# Space deployment artifacts (built by CI)
+space/demo_products.csv
+space/manifest.json

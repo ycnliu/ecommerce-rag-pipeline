@@ -1,0 +1,2 @@
+# Minimal dependencies for HuggingFace Spaces demo
+gradio>=4.0.0

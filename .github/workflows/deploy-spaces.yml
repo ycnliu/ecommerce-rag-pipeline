@@ -1,0 +1,200 @@
+name: Deploy to HuggingFace Spaces
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.9'
+  HF_USERNAME: ycnliu
+
+jobs:
+  build-artifacts:
+    name: Build Demo Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas numpy pydantic
+
+    - name: Build demo dataset
+      run: |
+        python scripts/prepare_demo_data.py \
+          --input data/amazon_com_ecommerce.csv \
+          --output space/demo_products.csv \
+          --limit 100
+
+    - name: Generate metadata manifest
+      run: |
+        python scripts/generate_manifest.py \
+          --output space/manifest.json \
+          --version ${{ github.sha }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: demo-artifacts
+        path: |
+          space/demo_products.csv
+          space/manifest.json
+        retention-days: 30
+
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov ruff bandit pip-audit
+
+    - name: Run tests
+      run: |
+        pytest tests/ -v --cov=src --cov-report=term --cov-fail-under=70
+
+    - name: Lint with ruff
+      run: |
+        ruff check src/ tests/
+
+    - name: Type check with mypy
+      run: |
+        mypy src/ --ignore-missing-imports
+
+    - name: Security scan with bandit
+      run: |
+        bandit -r src/ -f json -o bandit-report.json
+
+    - name: Dependency audit
+      run: |
+        pip-audit --desc --fix-version
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: bandit-report.json
+
+  deploy-preview:
+    name: Deploy Preview (PR)
+    runs-on: ubuntu-latest
+    needs: [build-artifacts, quality-gates]
+    if: github.event_name == 'pull_request'
+    environment:
+      name: preview
+      url: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-preview
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: demo-artifacts
+        path: space/
+
+    - name: Install HuggingFace CLI
+      run: |
+        pip install huggingface_hub
+
+    - name: Deploy to Preview Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        python scripts/deploy_to_space.py \
+          --space-id ${{ env.HF_USERNAME }}/ecommerce-rag-preview \
+          --source-dir space/ \
+          --commit-message "Preview: PR #${{ github.event.pull_request.number }}"
+
+    - name: Smoke test preview
+      run: |
+        sleep 30  # Wait for Space to start
+        curl -f https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-preview || exit 1
+
+    - name: Comment on PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: `## Preview Deployed\n\n` +
+                  `Preview URL: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-preview\n\n` +
+                  `Built from commit: ${context.sha.substring(0, 7)}\n` +
+                  `Quality gates: Passed`
+          })
+
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: [build-artifacts, quality-gates]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-demo
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: demo-artifacts
+        path: space/
+
+    - name: Install HuggingFace CLI
+      run: |
+        pip install huggingface_hub
+
+    - name: Deploy to Production Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        python scripts/deploy_to_space.py \
+          --space-id ${{ env.HF_USERNAME }}/ecommerce-rag-demo \
+          --source-dir space/ \
+          --commit-message "Deploy: ${GITHUB_SHA:0:7} - ${{ github.event.head_commit.message }}"
+
+    - name: Smoke test production
+      run: |
+        sleep 45  # Wait for Space to start
+        curl -f https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-demo || exit 1
+
+    - name: Verify Space is running
+      run: |
+        python scripts/verify_space.py \
+          --space-url https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-demo
+
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "Production deployment successful"
+        echo "URL: https://huggingface.co/spaces/${{ env.HF_USERNAME }}/ecommerce-rag-demo"
+
+    - name: Rollback on failure
+      if: failure()
+      run: |
+        echo "Deployment failed - manual intervention required"
+        exit 1
