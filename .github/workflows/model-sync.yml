@@ -26,9 +26,9 @@ on:
         - fusion
         - full_pipeline
 
-  schedule:
-    # Auto-sync daily at 2 AM UTC
-    - cron: '0 2 * * *'
+  # schedule:
+    # Auto-sync daily at 2 AM UTC (disabled until models are trained)
+    # - cron: '0 2 * * *'
 
 env:
   PYTHON_VERSION: '3.9'
@@ -60,7 +60,14 @@ jobs:
       run: |
         MODEL_PATH="${{ github.event.inputs.model_path || 'models/fine_tuned' }}"
         if [ ! -d "$MODEL_PATH" ]; then
-          echo "Model path $MODEL_PATH does not exist"
+          echo "❌ Model path $MODEL_PATH does not exist"
+          echo ""
+          echo "This workflow syncs fine-tuned models to Hugging Face."
+          echo "To train models first, run the 'Model Training Pipeline' workflow."
+          echo ""
+          echo "The app currently uses pre-trained models directly from Hugging Face:"
+          echo "  - CLIP: openai/clip-vit-base-patch32"
+          echo "  - LLM: mistralai/Mixtral-8x7B-Instruct-v0.1"
           exit 1
         fi
         echo "MODEL_PATH=$MODEL_PATH" >> $GITHUB_ENV
