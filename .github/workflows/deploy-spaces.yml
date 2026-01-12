@@ -50,7 +50,7 @@ jobs:
           --version ${{ github.sha }}
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: demo-artifacts
         path: |
@@ -115,7 +115,7 @@ jobs:
         pip-audit --desc --fix-version || echo "Note: Some dependencies have known vulnerabilities. Review pip-audit output above."
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: security-reports
         path: bandit-report.json
