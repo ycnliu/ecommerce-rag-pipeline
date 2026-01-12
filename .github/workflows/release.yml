@@ -18,7 +18,7 @@ jobs:
       release_version: ${{ steps.get_version.outputs.version }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Get version
       id: get_version
@@ -72,7 +72,7 @@ jobs:
     needs: create-release
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -125,7 +125,7 @@ jobs:
     needs: create-release
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -160,7 +160,7 @@ jobs:
     needs: create-release
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -223,7 +223,7 @@ jobs:
       url: https://huggingface.co/spaces/ycnliu/ecommerce-rag-demo
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Python
       uses: actions/setup-python@v4
